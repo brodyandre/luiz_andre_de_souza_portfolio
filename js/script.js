@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inicia o carregamento
   loadProjects();
 
-  // [Mantém o código de modais, tema, etc., inalterado]
+  // [Mantém o código de modais, tema, etc.]
   const modal = document.getElementById('certificado-modal');
   const modalImg = document.getElementById('imagem-certificado');
   const closeModal = modal?.querySelector('.fechar-modal');
@@ -307,30 +307,39 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  const curriculoModal = document.createElement('div');
-  curriculoModal.className = 'modal';
-  curriculoModal.setAttribute('role', 'dialog');
-  curriculoModal.setAttribute('aria-modal', 'true');
-  curriculoModal.innerHTML = `
-    <span class="fechar-modal" role="button" aria-label="Fechar modal" tabindex="0">&times;</span>
-    <img class="modal-conteudo" id="imagem-curriculo" alt="Currículo" src="https://github.com/brodyandre/luiz_andre_de_souza_portfolio/blob/19756fdd87394874ad2ca97913a6f5335b8285ae/assets/Curriculo%20moderno%20para%20profissional%20de%20TI%20azul.jpg" />
-  `;
-  document.body.appendChild(curriculoModal);
-  window.curriculoModal = curriculoModal;
-
+  // Configuração do modal de currículo
+  const curriculoModal = document.getElementById('curriculo-modal');
   const verCurriculoBtn = document.getElementById('ver-curriculo');
-  verCurriculoBtn.addEventListener('click', () => {
-    curriculoModal.style.display = "block";
-    curriculoModal.focus();
+  const fecharCurriculoModal = curriculoModal?.querySelector('.fechar-modal');
+
+  if (verCurriculoBtn && curriculoModal) {
+    verCurriculoBtn.addEventListener('click', () => {
+      curriculoModal.style.display = "block";
+      curriculoModal.focus();
+    });
+  }
+
+  if (fecharCurriculoModal) {
+    fecharCurriculoModal.addEventListener('click', () => {
+      curriculoModal.style.display = "none";
+    });
+    fecharCurriculoModal.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        curriculoModal.style.display = "none";
+      }
+    });
+  }
+
+  // Adiciona fechamento do modal de currículo ao clicar fora ou pressionar Esc
+  window.addEventListener('click', e => {
+    if (e.target === curriculoModal) {
+      curriculoModal.style.display = "none";
+    }
   });
 
-  const fecharCurriculoModal = curriculoModal.querySelector('.fechar-modal');
-  fecharCurriculoModal.addEventListener('click', () => {
-    curriculoModal.style.display = "none";
-  });
-  fecharCurriculoModal.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && curriculoModal.style.display === "block") {
       curriculoModal.style.display = "none";
     }
   });
