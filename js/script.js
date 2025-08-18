@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
   curriculoModal.setAttribute('aria-modal', 'true');
   curriculoModal.innerHTML = `
     <span class="fechar-modal" role="button" aria-label="Fechar modal" tabindex="0">&times;</span>
-    <img class="modal-conteudo" id="imagem-curriculo" alt="Currículo" src="https://raw.githubusercontent.com/brodyandre/brodyandre.github.io/2dd5745396c2935c5db7e8365ceb8e2b0463b100/Curriculo%20moderno%20para%20profissional%20de%20TI%20azul.jpg" />
+    <img class="modal-conteudo" id="imagem-curriculo" alt="Currículo" src="https://github.com/brodyandre/luiz_andre_de_souza_portfolio/blob/19756fdd87394874ad2ca97913a6f5335b8285ae/assets/Curriculo%20moderno%20para%20profissional%20de%20TI%20azul.jpg" />
   `;
   document.body.appendChild(curriculoModal);
   window.curriculoModal = curriculoModal;
