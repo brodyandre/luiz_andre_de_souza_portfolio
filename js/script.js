@@ -343,4 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
       curriculoModal.style.display = "none";
     }
   });
+
+  // Abre o modal de currículo automaticamente ao carregar a página
+  if (verCurriculoBtn) {
+    verCurriculoBtn.click();
+  }
 });
