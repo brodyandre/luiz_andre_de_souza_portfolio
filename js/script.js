@@ -1,10 +1,11 @@
+```javascript
 document.addEventListener('DOMContentLoaded', function() {
   const username = 'brodyandre';
   const githubToken = ''; // Insira seu token aqui, se disponível (ex.: 'ghp_SeuTokenAqui')
 
   // Helper para construir headers com o token
   function getGitHubHeaders() {
-    const headers = { 
+    const headers = {
       Accept: 'application/vnd.github.v3+json',
     };
     if (githubToken) {
@@ -38,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
         ...options,
         headers: getGitHubHeaders()
       });
-
       if (response.status === 403 && response.headers.get('X-RateLimit-Remaining') === '0') {
         const resetTime = parseInt(response.headers.get('X-RateLimit-Reset')) * 1000;
         const waitTime = Math.max(0, resetTime - Date.now() + 1000);
@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function() {
         await new Promise(resolve => setTimeout(resolve, waitTime));
         return fetchWithRetry(url, options, retries - 1);
       }
-
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response;
     } catch (error) {
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let repos = [];
     let page = 1;
     const per_page = 100; // Aumentado para buscar todos os repositórios de uma vez
-
     while (true) {
       const url = `https://api.github.com/users/${username}/repos?per_page=${per_page}&page=${page}&sort=updated`;
       try {
@@ -91,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const langLower = (repo.language || '').toLowerCase();
     const repoNameLower = (repo.name || '').toLowerCase();
     const descLower = (repo.description || '').toLowerCase();
-
     if (filterLanguage === 'python') return langLower === 'python';
     if (filterLanguage === 'spark') return langLower === 'scala' || repoNameLower.includes('spark') || descLower.includes('spark');
     if (filterLanguage === 'aws') return repoNameLower.includes('aws') || descLower.includes('aws');
@@ -101,12 +98,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function renderProjetos(projetos, filter = 'all') {
     listaProjetos.innerHTML = '';
     const filtered = filter === 'all' ? projetos : projetos.filter(p => repoMatchesFilter(p, filter));
-
     if (filtered.length === 0) {
       listaProjetos.innerHTML = '<p>Nenhum projeto encontrado para o filtro selecionado.</p>';
       return;
     }
-
     filtered.forEach(projeto => {
       const div = document.createElement('div');
       div.className = 'projeto-card';
@@ -141,7 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (repo.language?.toLowerCase() === 'python') {
           if (!languages.includes('python')) languages.push('python');
         }
-
         return {
           title: repo.name,
           description: repo.description || 'Descrição não disponível.',
@@ -149,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
           link: repo.html_url
         };
       });
-
       // Remove duplicatas com base no título
       const uniqueProjetos = [];
       const seenTitles = new Set();
@@ -159,10 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
           uniqueProjetos.push(projeto);
         }
       }
-
       // Renderiza projetos
       renderProjetos(uniqueProjetos);
-
       // Configura filtros
       filtroBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -174,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
           this.setAttribute('aria-checked', 'true');
           renderProjetos(uniqueProjetos, this.dataset.language);
         });
-
         btn.addEventListener('keydown', e => {
           if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
@@ -182,7 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       });
-
     } catch (error) {
       let errorMsg = 'Erro ao carregar projetos. Acesse meu <a href="https://github.com/brodyandre?tab=repositories" target="_blank" rel="noopener noreferrer">GitHub</a> para ver todos os projetos.';
       if (!githubToken) {
@@ -193,14 +182,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // Certification Year Filter: Filter certifications by year
+  const yearFilterButtons = document.querySelectorAll('.filtro-certificados button');
+  const certificados = document.querySelectorAll('.certificado');
+
+  yearFilterButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      yearFilterButtons.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      this.classList.add('active');
+      this.setAttribute('aria-checked', 'true');
+      const selectedYear = this.dataset.year;
+      certificados.forEach(certificado => {
+        if (selectedYear === 'all' || certificado.dataset.year === selectedYear) {
+          certificado.style.display = 'block';
+        } else {
+          certificado.style.display = 'none';
+        }
+      });
+    });
+    btn.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        btn.click();
+      }
+    });
+  });
+
   // Inicia o carregamento
   loadProjects();
 
-  // [Mantém o código de modais, tema, etc.]
+  // Modal de certificados
   const modal = document.getElementById('certificado-modal');
   const modalImg = document.getElementById('imagem-certificado');
   const closeModal = modal?.querySelector('.fechar-modal');
-
   if (closeModal) {
     closeModal.addEventListener('click', () => modal.style.display = "none");
     closeModal.addEventListener('keydown', e => {
@@ -210,20 +227,20 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-
   document.querySelectorAll('.ver-credencial').forEach(btn => {
     btn.addEventListener('click', () => {
       modal.style.display = "block";
       modalImg.src = btn.dataset.imagem;
+      modalImg.alt = btn.getAttribute('aria-label').replace('Ver credencial do certificado ', 'Certificado: ');
       modal.focus();
     });
   });
 
+  // Modal de mapa
   const mapaModal = document.getElementById('mapa-modal');
   const abrirMapa = document.getElementById('abrir-mapa');
   const fecharMapa = mapaModal?.querySelector('.fechar-modal');
   const iframeMapa = document.getElementById('iframe-mapa');
-
   if (abrirMapa && mapaModal && iframeMapa) {
     abrirMapa.addEventListener('click', () => {
       iframeMapa.src = 'https://maps.google.com/maps?width=600&height=450&hl=pt-BR&q=Rua+Tom%C3%A9+Ribeiro,+49,+Jardim+Sapopemba,+São+Paulo+SP&ie=UTF8&t=&z=16&iwloc=B&output=embed';
@@ -231,7 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
       mapaModal.focus();
     });
   }
-
   if (fecharMapa) {
     fecharMapa.addEventListener('click', () => {
       mapaModal.style.display = "none";
@@ -246,79 +262,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  window.addEventListener('click', e => {
-    if (e.target === modal) modal.style.display = "none";
-    if (e.target === mapaModal) {
-      mapaModal.style.display = "none";
-      iframeMapa.src = "";
-    }
-  });
-
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      if (modal.style.display === "block") modal.style.display = "none";
-      if (mapaModal.style.display === "block") {
-        mapaModal.style.display = "none";
-        iframeMapa.src = "";
-      }
-    }
-  });
-
-  const backToTopBtn = document.getElementById('back-to-top');
-  window.addEventListener('scroll', () => {
-    backToTopBtn.style.display = window.pageYOffset > 300 ? "block" : "none";
-  });
-
-  backToTopBtn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-
-  const themeToggle = document.getElementById('theme-toggle');
-  themeToggle.addEventListener('click', () => {
-    const isDark = document.body.classList.toggle('dark-theme');
-    localStorage.setItem('darkTheme', isDark);
-    themeToggle.textContent = isDark ? '🌞' : '🌓';
-    themeToggle.setAttribute('aria-pressed', isDark.toString());
-  });
-
-  if (localStorage.getItem('darkTheme') === 'true') {
-    document.body.classList.add('dark-theme');
-    themeToggle.textContent = '🌞';
-    themeToggle.setAttribute('aria-pressed', 'true');
-  }
-
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', e => {
-      e.preventDefault();
-      const target = document.querySelector(anchor.getAttribute('href'));
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth' });
-        target.focus();
-      }
-    });
-  });
-
-  const formContato = document.getElementById('form-contato');
-  if (formContato) {
-    formContato.addEventListener('submit', e => {
-      e.preventDefault();
-      alert('Mensagem enviada com sucesso! Entrarei em contato em breve.');
-      formContato.reset();
-    });
-  }
-
-  // Configuração do modal de currículo
+  // Modal de currículo
   const curriculoModal = document.getElementById('curriculo-modal');
   const verCurriculoBtn = document.getElementById('ver-curriculo');
   const fecharCurriculoModal = curriculoModal?.querySelector('.fechar-modal');
-
   if (verCurriculoBtn && curriculoModal) {
     verCurriculoBtn.addEventListener('click', () => {
       curriculoModal.style.display = "block";
       curriculoModal.focus();
     });
   }
-
   if (fecharCurriculoModal) {
     fecharCurriculoModal.addEventListener('click', () => {
       curriculoModal.style.display = "none";
@@ -331,21 +284,78 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Adiciona fechamento do modal de currículo ao clicar fora ou pressionar Esc
+  // Fechamento de modais ao clicar fora ou pressionar Esc
   window.addEventListener('click', e => {
+    if (e.target === modal) modal.style.display = "none";
+    if (e.target === mapaModal) {
+      mapaModal.style.display = "none";
+      iframeMapa.src = "";
+    }
     if (e.target === curriculoModal) {
       curriculoModal.style.display = "none";
     }
   });
-
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && curriculoModal.style.display === "block") {
-      curriculoModal.style.display = "none";
+    if (e.key === 'Escape') {
+      if (modal.style.display === "block") modal.style.display = "none";
+      if (mapaModal.style.display === "block") {
+        mapaModal.style.display = "none";
+        iframeMapa.src = "";
+      }
+      if (curriculoModal.style.display === "block") {
+        curriculoModal.style.display = "none";
+      }
     }
   });
+
+  // Botão voltar ao topo
+  const backToTopBtn = document.getElementById('back-to-top');
+  window.addEventListener('scroll', () => {
+    backToTopBtn.style.display = window.pageYOffset > 300 ? "block" : "none";
+  });
+  backToTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Alternância de tema
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle.addEventListener('click', () => {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('darkTheme', isDark);
+    themeToggle.textContent = isDark ? '🌞' : '🌓';
+    themeToggle.setAttribute('aria-pressed', isDark.toString());
+  });
+  if (localStorage.getItem('darkTheme') === 'true') {
+    document.body.classList.add('dark-theme');
+    themeToggle.textContent = '🌞';
+    themeToggle.setAttribute('aria-pressed', 'true');
+  }
+
+  // Navegação suave
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(anchor.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+        target.focus();
+      }
+    });
+  });
+
+  // Formulário de contato
+  const formContato = document.getElementById('form-contato');
+  if (formContato) {
+    formContato.addEventListener('submit', e => {
+      e.preventDefault();
+      alert('Mensagem enviada com sucesso! Entrarei em contato em breve.');
+      formContato.reset();
+    });
+  }
 
   // Abre o modal de currículo automaticamente ao carregar a página
   if (verCurriculoBtn) {
     verCurriculoBtn.click();
   }
 });
+```
