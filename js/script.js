@@ -196,7 +196,46 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inicia o carregamento
   loadProjects();
 
-  // [Mantém o código de modais, tema, etc., inalterado]
+  // Lógica de filtro para certificações
+  const filtroCertificacoesBtns = document.querySelectorAll('.filtro-certificacoes button');
+  const certificadosContainer = document.getElementById('certificados-lista');
+  const todosCertificados = Array.from(certificadosContainer.children); // Armazena todos os certificados
+
+  function filterCertifications(year) {
+    todosCertificados.forEach(certificado => {
+      const certificadoYear = certificado.dataset.year;
+      if (year === 'all' || certificadoYear === year) {
+        certificado.style.display = 'block';
+      } else {
+        certificado.style.display = 'none';
+      }
+    });
+  }
+
+  filtroCertificacoesBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      filtroCertificacoesBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      this.classList.add('active');
+      this.setAttribute('aria-checked', 'true');
+      filterCertifications(this.dataset.year);
+    });
+
+    btn.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        btn.click();
+      }
+    });
+  });
+
+  // Inicializa o filtro para mostrar todos os certificados ao carregar a página
+  filterCertifications('all');
+
+
+  // [Mantém o código de modais, tema, etc.]
   const modal = document.getElementById('certificado-modal');
   const modalImg = document.getElementById('imagem-certificado');
   const closeModal = modal?.querySelector('.fechar-modal');
@@ -307,31 +346,45 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  const curriculoModal = document.createElement('div');
-  curriculoModal.className = 'modal';
-  curriculoModal.setAttribute('role', 'dialog');
-  curriculoModal.setAttribute('aria-modal', 'true');
-  curriculoModal.innerHTML = `
-    <span class="fechar-modal" role="button" aria-label="Fechar modal" tabindex="0">&times;</span>
-    <img class="modal-conteudo" id="imagem-curriculo" alt="Currículo" src="https://raw.githubusercontent.com/brodyandre/brodyandre.github.io/2dd5745396c2935c5db7e8365ceb8e2b0463b100/Curriculo%20moderno%20para%20profissional%20de%20TI%20azul.jpg" />
-  `;
-  document.body.appendChild(curriculoModal);
-  window.curriculoModal = curriculoModal;
-
+  // Configuração do modal de currículo
+  const curriculoModal = document.getElementById('curriculo-modal');
   const verCurriculoBtn = document.getElementById('ver-curriculo');
-  verCurriculoBtn.addEventListener('click', () => {
-    curriculoModal.style.display = "block";
-    curriculoModal.focus();
-  });
+  const fecharCurriculoModal = curriculoModal?.querySelector('.fechar-modal');
 
-  const fecharCurriculoModal = curriculoModal.querySelector('.fechar-modal');
-  fecharCurriculoModal.addEventListener('click', () => {
-    curriculoModal.style.display = "none";
-  });
-  fecharCurriculoModal.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
+  if (verCurriculoBtn && curriculoModal) {
+    verCurriculoBtn.addEventListener('click', () => {
+      curriculoModal.style.display = "block";
+      curriculoModal.focus();
+    });
+  }
+
+  if (fecharCurriculoModal) {
+    fecharCurriculoModal.addEventListener('click', () => {
+      curriculoModal.style.display = "none";
+    });
+    fecharCurriculoModal.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        curriculoModal.style.display = "none";
+      }
+    });
+  }
+
+  // Adiciona fechamento do modal de currículo ao clicar fora ou pressionar Esc
+  window.addEventListener('click', e => {
+    if (e.target === curriculoModal) {
       curriculoModal.style.display = "none";
     }
   });
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && curriculoModal.style.display === "block") {
+      curriculoModal.style.display = "none";
+    }
+  });
+
+  // Abre o modal de currículo automaticamente ao carregar a página
+  if (verCurriculoBtn) {
+    // verCurriculoBtn.click(); // Comentado para não abrir automaticamente
+  }
 });
