@@ -3,6 +3,7 @@
   --primary-color: #2c3e50;
   --secondary-color: #3498db;
   --text-color: #333;
+  --muted-text-color: #555;
   --bg-color: #fff;
   --card-bg: #f8f9fa;
   --border-color: #ddd;
@@ -12,6 +13,7 @@
   --primary-color: #34495e;
   --secondary-color: #2980b9;
   --text-color: #ecf0f1;
+  --muted-text-color: #d0d7de;
   --bg-color: #2c3e50;
   --card-bg: #34495e;
   --border-color: #4a6278;
@@ -72,10 +74,12 @@ nav {
 nav ul {
   display: flex;
   list-style: none;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 nav ul li {
-  margin-left: 1.5rem;
+  margin-left: 0;
 }
 
 nav ul li a {
@@ -113,12 +117,30 @@ h1, h2, h3 {
   gap: 3rem;
 }
 
+#sobre > div {
+  flex: 1;
+  min-width: min(100%, 320px);
+}
+
 #sobre img {
   border-radius: 50%;
   width: 200px;
   height: 200px;
   object-fit: cover;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.hero-eyebrow {
+  color: var(--secondary-color);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-lead {
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .experiencia-destaque {
@@ -136,6 +158,7 @@ h1, h2, h3 {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .btn-rede {
@@ -153,6 +176,12 @@ h1, h2, h3 {
 .btn-rede:hover {
   background-color: var(--secondary-color);
   transform: scale(1.05);
+}
+
+.section-intro {
+  max-width: 860px;
+  margin-bottom: 1.5rem;
+  color: var(--muted-text-color);
 }
 
 /* Filtro de Projetos e Certificações */
@@ -226,10 +255,21 @@ h1, h2, h3 {
 }
 
 .projeto-card p {
-  color: #555;
+  color: var(--muted-text-color);
   line-height: 1.3;
-  flex-grow: 1;
   overflow-wrap: break-word;
+}
+
+.projeto-tipo {
+  color: var(--secondary-color);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.projeto-valor {
+  color: var(--text-color);
 }
 
 .projeto-linguagens {
@@ -261,6 +301,20 @@ h1, h2, h3 {
 .projeto-link:hover {
   color: var(--primary-color);
   text-decoration: underline;
+}
+
+.projeto-acoes {
+  margin-top: auto;
+}
+
+.projects-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.projects-footer a {
+  color: var(--secondary-color);
+  font-weight: 600;
 }
 
 /* Seção Skills */
@@ -300,7 +354,7 @@ h1, h2, h3 {
 
 .skill-exp {
   font-size: 0.8rem;
-  color: #777;
+  color: var(--muted-text-color);
 }
 
 /* Seção Certificações */
@@ -332,7 +386,7 @@ h1, h2, h3 {
 
 .certificado p {
   margin-bottom: 1rem;
-  color: #666;
+  color: var(--muted-text-color);
 }
 
 .certificado-link {
@@ -375,6 +429,8 @@ h1, h2, h3 {
   position: absolute;
   top: 20px;
   right: 30px;
+  background: none;
+  border: none;
   color: white;
   font-size: 30px;
   font-weight: bold;
@@ -409,7 +465,7 @@ h1, h2, h3 {
 
 .contato-horario {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--muted-text-color);
   margin-top: 0.25rem;
 }
 
@@ -423,10 +479,22 @@ h1, h2, h3 {
   font-size: 0.9rem;
 }
 
+.contato-redes {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .contato-form {
   background-color: var(--card-bg);
   padding: 2rem;
   border-radius: 8px;
+}
+
+.form-note {
+  margin-bottom: 1rem;
+  color: var(--muted-text-color);
+  font-size: 0.95rem;
 }
 
 .form-group {
@@ -447,6 +515,21 @@ h1, h2, h3 {
   border-radius: 4px;
   background-color: var(--bg-color);
   color: var(--text-color);
+}
+
+.form-group input:focus-visible,
+.form-group textarea:focus-visible,
+.certificado-link:focus-visible,
+.btn-enviar:focus-visible,
+.fechar-modal:focus-visible,
+.link-mapa:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+#iframe-mapa {
+  width: min(90vw, 600px);
+  height: min(70vh, 450px);
 }
 
 .btn-enviar {
@@ -499,6 +582,17 @@ footer {
   background-color: rgba(255,255,255,0.1);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   nav {
@@ -507,12 +601,11 @@ footer {
   }
   
   nav ul {
-    flex-wrap: wrap;
     justify-content: center;
   }
   
   nav ul li {
-    margin: 0 0.5rem;
+    margin: 0;
   }
   
   #sobre {
@@ -541,6 +634,10 @@ footer {
 }
 
 @media (max-width: 480px) {
+  main {
+    padding: 0 1rem;
+  }
+
   #lista-projetos {
     grid-template-columns: 1fr;
   }
