@@ -147,111 +147,165 @@
 
   <section id="projetos" tabindex="-1" aria-label="Projetos de Luiz André de Souza">
     <h2>Projetos em destaque</h2>
-    <p class="section-intro">Seleção manual de projetos com melhor sinal profissional para LinkedIn, GitHub e candidaturas. Os cards abaixo não dependem da API do GitHub para aparecer e resumem contexto, stack e valor técnico.</p>
+    <p class="section-intro">Curadoria manual de seis projetos prioritários para destacar competências avaliadas por recrutadores e lideranças técnicas em vagas de Engenharia de Dados, Cloud, DataOps, DevOps e IA aplicada. Os cards abaixo não dependem da API do GitHub para aparecer e resumem escopo, stack, competências demonstradas e valor profissional de cada laboratório.</p>
+    <p class="projects-curation-note">A seleção prioriza Engenharia de Dados, Cloud, CI/CD, Kubernetes e IA aplicada em ambientes reproduzíveis, com descrições honestas sobre o escopo de laboratório.</p>
     <div class="filtro" role="radiogroup" aria-label="Filtro de projetos por área">
       <button type="button" class="active" data-language="all" aria-checked="true" role="radio">Todos</button>
-      <button type="button" data-language="data-engineering" aria-checked="false" role="radio">Dados</button>
+      <button type="button" data-language="data-engineering" aria-checked="false" role="radio">Engenharia de Dados</button>
       <button type="button" data-language="cloud" aria-checked="false" role="radio">Cloud</button>
-      <button type="button" data-language="devops" aria-checked="false" role="radio">DevOps</button>
-      <button type="button" data-language="ai" aria-checked="false" role="radio">IA</button>
+      <button type="button" data-language="devops" aria-checked="false" role="radio">DataOps / DevOps</button>
+      <button type="button" data-language="kubernetes" aria-checked="false" role="radio">Kubernetes</button>
+      <button type="button" data-language="ai" aria-checked="false" role="radio">IA / RAG</button>
+      <button type="button" data-language="cicd" aria-checked="false" role="radio">CI/CD</button>
     </div>
     <div id="lista-projetos" aria-live="polite" aria-relevant="additions">
-      <article class="projeto-card" data-filters="data-engineering cloud">
-        <p class="projeto-tipo">Engenharia de Dados</p>
-        <h3>azure-snowflake-dbt-local-data-platform</h3>
-        <p>Plataforma local-first que simula uma arquitetura com Azure e Snowflake usando dbt, SQL, streaming, qualidade de dados, Streamlit e CI/CD.</p>
-        <p class="projeto-valor"><strong>Valor profissional:</strong> demonstra arquitetura ponta a ponta, padronização de ambientes e preocupação com reprodutibilidade para times de dados.</p>
-        <div class="projeto-linguagens">
-          <span class="linguagem-tag">Python</span>
-          <span class="linguagem-tag">dbt</span>
-          <span class="linguagem-tag">SQL</span>
-          <span class="linguagem-tag">Streamlit</span>
-          <span class="linguagem-tag">CI/CD</span>
+      <article class="projeto-card" data-filters="data-engineering cloud cicd">
+        <div class="projeto-card-header">
+          <p class="projeto-tipo">Engenharia de Dados</p>
+          <h3>azure-snowflake-dbt-local-data-platform</h3>
         </div>
+        <p class="projeto-resumo">Laboratório local-first que simula uma plataforma de dados inspirada em Azure e Snowflake, com ingestão batch e streaming, transformações, qualidade de dados e consumo analítico.</p>
+        <div class="projeto-detalhes">
+          <div>
+            <p class="projeto-label">Stack principal</p>
+            <div class="projeto-linguagens">
+              <span class="linguagem-tag">Python</span>
+              <span class="linguagem-tag">dbt</span>
+              <span class="linguagem-tag">DuckDB</span>
+              <span class="linguagem-tag">Streamlit</span>
+              <span class="linguagem-tag">GitHub Actions</span>
+            </div>
+          </div>
+          <p class="projeto-detalhe"><strong>Competências demonstradas:</strong> ingestão de dados, modelagem analítica, data quality, CI/CD e documentação técnica de uma arquitetura ponta a ponta.</p>
+        </div>
+        <p class="projeto-valor"><strong>Leitura para recrutadores:</strong> conecta arquitetura, transformação, qualidade e consumo em um único repositório reproduzível, o que facilita avaliar profundidade técnica sem depender de cloud paga.</p>
         <div class="projeto-acoes">
           <a href="https://github.com/brodyandre/azure-snowflake-dbt-local-data-platform" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
         </div>
       </article>
 
-      <article class="projeto-card" data-filters="data-engineering cloud">
-        <p class="projeto-tipo">Lakehouse</p>
-        <h3>aws-lakehouse-engineering-lab</h3>
-        <p>Laboratório gratuito de arquitetura AWS Lakehouse com PySpark, Airflow, MinIO, qualidade de dados, observabilidade, FinOps e automação.</p>
-        <p class="projeto-valor"><strong>Valor profissional:</strong> evidencia domínio de orquestração, processamento distribuído e observabilidade em uma stack típica de Engenharia de Dados.</p>
-        <div class="projeto-linguagens">
-          <span class="linguagem-tag">Python</span>
-          <span class="linguagem-tag">PySpark</span>
-          <span class="linguagem-tag">Airflow</span>
-          <span class="linguagem-tag">MinIO</span>
-          <span class="linguagem-tag">Cloud</span>
+      <article class="projeto-card" data-filters="devops kubernetes cicd">
+        <div class="projeto-card-header">
+          <p class="projeto-tipo">CI/CD</p>
+          <h3>data-quality-api-continuous-delivery-lab</h3>
         </div>
-        <div class="projeto-acoes">
-          <a href="https://github.com/brodyandre/aws-lakehouse-engineering-lab" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
+        <p class="projeto-resumo">Laboratório de entrega contínua com FastAPI, GitHub Actions, Docker e Kubernetes para estudar validação automatizada, promoção entre ambientes e organização de manifests.</p>
+        <div class="projeto-detalhes">
+          <div>
+            <p class="projeto-label">Stack principal</p>
+            <div class="projeto-linguagens">
+              <span class="linguagem-tag">FastAPI</span>
+              <span class="linguagem-tag">GitHub Actions</span>
+              <span class="linguagem-tag">Docker</span>
+              <span class="linguagem-tag">Kubernetes</span>
+              <span class="linguagem-tag">Kustomize</span>
+            </div>
+          </div>
+          <p class="projeto-detalhe"><strong>Competências demonstradas:</strong> testes automatizados, separação entre ambientes, governança com GitHub Environments e esteira didática de CI/CD.</p>
         </div>
-      </article>
-
-      <article class="projeto-card" data-filters="ai cloud">
-        <p class="projeto-tipo">IA aplicada</p>
-        <h3>agente-ia-manuais-rh-rag</h3>
-        <p>Assistente de IA com RAG para consulta de manuais de RH, integrando FastAPI, Next.js, Qdrant e Docker Compose.</p>
-        <p class="projeto-valor"><strong>Valor profissional:</strong> mostra integração entre backend, frontend, busca vetorial e arquitetura de serviços para um caso de uso corporativo.</p>
-        <div class="projeto-linguagens">
-          <span class="linguagem-tag">FastAPI</span>
-          <span class="linguagem-tag">Next.js</span>
-          <span class="linguagem-tag">Qdrant</span>
-          <span class="linguagem-tag">Docker</span>
-          <span class="linguagem-tag">RAG</span>
-        </div>
-        <div class="projeto-acoes">
-          <a href="https://github.com/brodyandre/agente-ia-manuais-rh-rag" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
-        </div>
-      </article>
-
-      <article class="projeto-card" data-filters="devops data-engineering">
-        <p class="projeto-tipo">DataOps</p>
-        <h3>dataops-github-actions-lab</h3>
-        <p>Laboratório profissional de GitHub Actions com automação, workflows reutilizáveis, padrões de CI/CD e práticas de DataOps.</p>
-        <p class="projeto-valor"><strong>Valor profissional:</strong> reforça maturidade em engenharia de entrega, versionamento e automação para projetos de dados.</p>
-        <div class="projeto-linguagens">
-          <span class="linguagem-tag">Python</span>
-          <span class="linguagem-tag">GitHub Actions</span>
-          <span class="linguagem-tag">CI/CD</span>
-          <span class="linguagem-tag">Automation</span>
-        </div>
-        <div class="projeto-acoes">
-          <a href="https://github.com/brodyandre/dataops-github-actions-lab" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
-        </div>
-      </article>
-
-      <article class="projeto-card" data-filters="devops cloud">
-        <p class="projeto-tipo">Entrega contínua</p>
-        <h3>data-quality-api-continuous-delivery-lab</h3>
-        <p>API em FastAPI com pipeline de entrega contínua usando GitHub Actions, Docker e Kubernetes para simular um fluxo completo de deploy.</p>
-        <p class="projeto-valor"><strong>Valor profissional:</strong> conecta testes, containerização e deploy em cluster, mostrando cuidado com qualidade e operacionalização.</p>
-        <div class="projeto-linguagens">
-          <span class="linguagem-tag">Python</span>
-          <span class="linguagem-tag">FastAPI</span>
-          <span class="linguagem-tag">Docker</span>
-          <span class="linguagem-tag">Kubernetes</span>
-        </div>
+        <p class="projeto-valor"><strong>Leitura para recrutadores:</strong> evidencia disciplina de pipeline e deixa claro que o escopo é de laboratório, sem fingir deploy real em cloud ou produção.</p>
         <div class="projeto-acoes">
           <a href="https://github.com/brodyandre/data-quality-api-continuous-delivery-lab" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
         </div>
       </article>
 
-      <article class="projeto-card" data-filters="devops cloud">
-        <p class="projeto-tipo">CI/CD</p>
-        <h3>nodejs-jenkins-k8s-cicd-lab</h3>
-        <p>Laboratório de CI/CD para uma API de status de pedidos com Jenkins, Docker Hub e Kubernetes/k3d em ambiente local.</p>
-        <p class="projeto-valor"><strong>Valor profissional:</strong> destaca capacidade de montar esteiras de build, publicação e deploy em cluster com foco prático de operação.</p>
-        <div class="projeto-linguagens">
-          <span class="linguagem-tag">Node.js</span>
-          <span class="linguagem-tag">Jenkins</span>
-          <span class="linguagem-tag">Docker Hub</span>
-          <span class="linguagem-tag">Kubernetes</span>
+      <article class="projeto-card" data-filters="devops kubernetes cicd">
+        <div class="projeto-card-header">
+          <p class="projeto-tipo">DataOps / DevOps</p>
+          <h3>nodejs-jenkins-k8s-cicd-lab</h3>
         </div>
+        <p class="projeto-resumo">Laboratório de CI/CD para uma API Node.js com Jenkins, Docker Hub e Kubernetes/k3d, cobrindo validação, build, publicação de imagem e rollout em cluster local.</p>
+        <div class="projeto-detalhes">
+          <div>
+            <p class="projeto-label">Stack principal</p>
+            <div class="projeto-linguagens">
+              <span class="linguagem-tag">Node.js</span>
+              <span class="linguagem-tag">Jenkins</span>
+              <span class="linguagem-tag">Docker Hub</span>
+              <span class="linguagem-tag">Kubernetes</span>
+              <span class="linguagem-tag">k3d</span>
+            </div>
+          </div>
+          <p class="projeto-detalhe"><strong>Competências demonstradas:</strong> pipeline declarativa, versionamento de imagens, deploy automatizado, smoke tests e evidências reais de execução.</p>
+        </div>
+        <p class="projeto-valor"><strong>Leitura para recrutadores:</strong> mostra uma esteira clássica de entrega com escopo validado em ambiente local, útil para entrevistas técnicas de CI/CD e operação.</p>
         <div class="projeto-acoes">
           <a href="https://github.com/brodyandre/nodejs-jenkins-k8s-cicd-lab" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
+        </div>
+      </article>
+
+      <article class="projeto-card" data-filters="ai">
+        <div class="projeto-card-header">
+          <p class="projeto-tipo">IA Generativa / RAG</p>
+          <h3>agente-ia-manuais-rh-rag</h3>
+        </div>
+        <p class="projeto-resumo">Aplicação RAG para consulta de manuais fictícios de RH, integrando FastAPI, Next.js, Qdrant e Docker Compose com respostas acompanhadas de fontes.</p>
+        <div class="projeto-detalhes">
+          <div>
+            <p class="projeto-label">Stack principal</p>
+            <div class="projeto-linguagens">
+              <span class="linguagem-tag">FastAPI</span>
+              <span class="linguagem-tag">Next.js</span>
+              <span class="linguagem-tag">Qdrant</span>
+              <span class="linguagem-tag">Docker Compose</span>
+              <span class="linguagem-tag">RAG</span>
+            </div>
+          </div>
+          <p class="projeto-detalhe"><strong>Competências demonstradas:</strong> arquitetura full stack, busca vetorial, guardrails, rastreabilidade por fonte e privacidade com dados demo.</p>
+        </div>
+        <p class="projeto-valor"><strong>Leitura para recrutadores:</strong> apresenta IA aplicada com utilidade corporativa e postura responsável sobre evidência, escopo e dados sensíveis.</p>
+        <div class="projeto-acoes">
+          <a href="https://github.com/brodyandre/agente-ia-manuais-rh-rag" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
+        </div>
+      </article>
+
+      <article class="projeto-card" data-filters="data-engineering cloud cicd">
+        <div class="projeto-card-header">
+          <p class="projeto-tipo">Cloud</p>
+          <h3>aws-lakehouse-engineering-lab</h3>
+        </div>
+        <p class="projeto-resumo">Laboratório local e gratuito de arquitetura lakehouse inspirada em AWS, com PySpark, Airflow, MinIO, data quality, observabilidade, FinOps e CI/CD.</p>
+        <div class="projeto-detalhes">
+          <div>
+            <p class="projeto-label">Stack principal</p>
+            <div class="projeto-linguagens">
+              <span class="linguagem-tag">Python</span>
+              <span class="linguagem-tag">PySpark</span>
+              <span class="linguagem-tag">Airflow</span>
+              <span class="linguagem-tag">MinIO</span>
+              <span class="linguagem-tag">GitHub Actions</span>
+            </div>
+          </div>
+          <p class="projeto-detalhe"><strong>Competências demonstradas:</strong> processamento distribuído, orquestração, qualidade de dados, observabilidade operacional e organização por camadas do lakehouse.</p>
+        </div>
+        <p class="projeto-valor"><strong>Leitura para recrutadores:</strong> reforça capacidade de estruturar pipelines analíticos reproduzíveis e honestos quanto ao uso de cloud simulada, sem exagerar maturidade de produção.</p>
+        <div class="projeto-acoes">
+          <a href="https://github.com/brodyandre/aws-lakehouse-engineering-lab" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
+        </div>
+      </article>
+
+      <article class="projeto-card" data-filters="kubernetes devops">
+        <div class="projeto-card-header">
+          <p class="projeto-tipo">Kubernetes</p>
+          <h3>kubernetes-deploy-strategies-lab</h3>
+        </div>
+        <p class="projeto-resumo">Laboratório de workloads Kubernetes com exemplos reproduzíveis de DaemonSet, Job, CronJob, StatefulSet, retenção de volume e Headless Service.</p>
+        <div class="projeto-detalhes">
+          <div>
+            <p class="projeto-label">Stack principal</p>
+            <div class="projeto-linguagens">
+              <span class="linguagem-tag">Kubernetes</span>
+              <span class="linguagem-tag">kubectl</span>
+              <span class="linguagem-tag">YAML</span>
+              <span class="linguagem-tag">GitHub Actions</span>
+              <span class="linguagem-tag">k3d / kind</span>
+            </div>
+          </div>
+          <p class="projeto-detalhe"><strong>Competências demonstradas:</strong> organização de manifests, escolha de workloads, persistência, execução batch, descoberta de serviço e documentação operacional.</p>
+        </div>
+        <p class="projeto-valor"><strong>Leitura para recrutadores:</strong> destaca domínio prático de fundamentos de Kubernetes em um formato claro, progressivo e fácil de avaliar em entrevista técnica.</p>
+        <div class="projeto-acoes">
+          <a href="https://github.com/brodyandre/kubernetes-deploy-strategies-lab" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
         </div>
       </article>
     </div>
