@@ -78,6 +78,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const AUTO_PROJECTS_BATCH_SIZE = 12;
+  const AUTO_PROJECT_DESCRIPTION_OVERRIDES = {
+    'dataops-github-actions-lab': 'Laboratório de DataOps com GitHub Actions, automação de pipelines, validações e práticas de CI/CD.',
+    'github-actions-self-hosted-runner-lab': 'Repositório público com estudos e testes práticos sobre self-hosted runners no GitHub Actions.',
+    'kubernetes-security-hardening-lab': 'Repositório público com estudos e testes práticos sobre hardening e segurança em workloads Kubernetes.',
+    'kubernetes-update-strategies-lab': 'Repositório público com estudos e testes práticos sobre estratégias de atualização e rollout no Kubernetes.',
+    'kubernetes-resilience-ha-lab': 'Repositório público com estudos e testes práticos de resiliência e alta disponibilidade em Kubernetes.',
+    'marketing-data-engineering-pipeline-lab': 'Repositório público com estudos e testes práticos de pipeline de Engenharia de Dados aplicado a dados de marketing.',
+    'product-reviews-cicd-pipeline-lab': 'Repositório público com estudos e testes práticos de CI/CD aplicados a um fluxo de avaliações de produtos.',
+    'churninsight-nocountry': 'MVP de previsão de churn para hackathon, combinando análise de dados e uma API para disponibilização do modelo.',
+    'growth_equestre_hackathon_2026': 'MVP de hackathon para captação e qualificação de leads, com backend, scoring e orquestração local via Docker Compose.',
+    'kubernetes-storage-volumes-lab': 'Laboratório de Kubernetes focado em volumes, persistência, StorageClass, ConfigMap, Secret e gestão de recursos.',
+  };
   let autoProjectsVisibleCount = 0;
   let autoProjectsLoaded = false;
   let autoProjectsLoading = false;
@@ -96,6 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
       ? Array.from(autoProjectsList.querySelectorAll('[data-auto-project-card]'))
       : [];
   }
+
+  function getAutoProjectNames() {
+    return new Set(
+      getAutoProjectCards()
+        .map((card) => card.querySelector('h3')?.textContent?.trim())
+        .filter(Boolean)
+    );
+  }
+
+  const INITIAL_AUTO_PROJECTS_COUNT = getAutoProjectCards().length;
 
   function inferAutoProjectTags(repo) {
     const inferredTags = [];
@@ -121,18 +143,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return deduplicatedTags.length > 0 ? deduplicatedTags.slice(0, 5) : ['GitHub'];
   }
 
-  function renderAutoProjectCards(repositories) {
+  function renderAutoProjectCards(repositories, options = {}) {
+    const { append = false } = options;
+
     if (!autoProjectsList) {
       return;
     }
 
     if (repositories.length === 0) {
-      autoProjectsList.innerHTML = '<p class="github-auto-projects-placeholder">Nenhum repositório complementar elegível foi encontrado no momento.</p>';
+      if (!append && getAutoProjectCards().length === 0) {
+        autoProjectsList.innerHTML = '<p class="github-auto-projects-placeholder">Nenhum repositório complementar elegível foi encontrado no momento.</p>';
+      }
       return;
     }
 
     const cardsHtml = repositories.map((repo) => {
-      const description = normalizeRepositoryDescription(repo.description);
+      const description = normalizeRepositoryDescription(repo.description, repo.name);
       const tagsHtml = inferAutoProjectTags(repo)
         .map((tag) => `<span class="linguagem-tag">${escapeHtml(tag)}</span>`)
         .join('');
@@ -152,11 +178,20 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
+    if (append && getAutoProjectCards().length > 0) {
+      autoProjectsList.insertAdjacentHTML('beforeend', cardsHtml);
+      return;
+    }
+
     autoProjectsList.innerHTML = cardsHtml;
   }
 
-  function normalizeRepositoryDescription(description) {
+  function normalizeRepositoryDescription(description, repoName = '') {
     const fallback = 'Repositório público com estudos, testes e implementações práticas.';
+    if (AUTO_PROJECT_DESCRIPTION_OVERRIDES[repoName]) {
+      return AUTO_PROJECT_DESCRIPTION_OVERRIDES[repoName];
+    }
+
     const cleanedDescription = String(description || '')
       .replace(/\s+/g, ' ')
       .replace(/^\s*[^\p{L}\p{N}]+/u, '')
@@ -191,11 +226,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateAutoProjectsSummary() {
     const totalCards = getAutoProjectCards().length;
+    const usingInitialSelectionOnly = !autoProjectsLoaded
+      && totalCards > 0
+      && totalCards === INITIAL_AUTO_PROJECTS_COUNT;
 
     if (autoProjectsTotal) {
-      autoProjectsTotal.textContent = totalCards > 0
-        ? `${totalCards} repositórios complementares`
-        : 'Lista complementar opcional';
+      if (totalCards === 0) {
+        autoProjectsTotal.textContent = 'Seleção complementar';
+      } else if (usingInitialSelectionOnly) {
+        autoProjectsTotal.textContent = `${totalCards} repositórios na seleção inicial`;
+      } else {
+        autoProjectsTotal.textContent = `${totalCards} repositórios complementares`;
+      }
     }
 
     if (toggleAutoProjectsButton) {
@@ -212,6 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoProjectCards = getAutoProjectCards();
     const totalCards = autoProjectCards.length;
     const visibleCards = Math.min(autoProjectsVisibleCount, totalCards);
+    const usingInitialSelectionOnly = !autoProjectsLoaded
+      && totalCards > 0
+      && totalCards === INITIAL_AUTO_PROJECTS_COUNT;
 
     autoProjectCards.forEach((card, index) => {
       card.hidden = index >= visibleCards;
@@ -220,6 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (autoProjectsStatus) {
       if (totalCards === 0) {
         autoProjectsStatus.textContent = 'Nenhum repositório complementar está disponível nesta lista no momento.';
+      } else if (usingInitialSelectionOnly) {
+        autoProjectsStatus.textContent = `Exibindo ${visibleCards} repositórios da seleção complementar inicial.`;
       } else if (visibleCards >= totalCards) {
         autoProjectsStatus.textContent = `Exibindo todos os ${totalCards} repositórios complementares disponíveis.`;
       } else {
@@ -229,10 +276,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (loadMoreAutoProjectsButton) {
       const remainingCards = totalCards - visibleCards;
-      loadMoreAutoProjectsButton.hidden = remainingCards <= 0;
+      const canLoadMoreOnDemand = !autoProjectsLoaded && totalCards > 0;
+
+      loadMoreAutoProjectsButton.hidden = remainingCards <= 0 && !canLoadMoreOnDemand;
+
       if (remainingCards > 0) {
         const nextBatch = Math.min(AUTO_PROJECTS_BATCH_SIZE, remainingCards);
         loadMoreAutoProjectsButton.textContent = `Carregar mais ${nextBatch} repositórios`;
+      } else if (canLoadMoreOnDemand) {
+        loadMoreAutoProjectsButton.textContent = 'Carregar mais repositórios';
       }
     }
 
@@ -271,18 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return repositories.filter((repo) => repo?.name && !curatedProjectNames.has(repo.name) && !repo.private);
   }
 
-  async function ensureAutoProjectsLoaded() {
+  async function loadAdditionalAutoProjects() {
     if (autoProjectsLoading) {
-      return;
-    }
-
-    const existingCards = getAutoProjectCards();
-    if (existingCards.length > 0) {
-      autoProjectsLoaded = true;
-      if (autoProjectsVisibleCount === 0) {
-        autoProjectsVisibleCount = Math.min(AUTO_PROJECTS_BATCH_SIZE, existingCards.length);
-      }
-      updateAutoProjectsVisibility();
       return;
     }
 
@@ -297,9 +339,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const repositories = await fetchComplementaryRepositories();
-      renderAutoProjectCards(repositories);
+      const existingNames = getAutoProjectNames();
+      const additionalRepositories = repositories.filter((repo) => !existingNames.has(repo.name));
+
+      renderAutoProjectCards(additionalRepositories, { append: existingNames.size > 0 });
       autoProjectsLoaded = true;
-      autoProjectsVisibleCount = Math.min(AUTO_PROJECTS_BATCH_SIZE, repositories.length);
+
+      if (additionalRepositories.length === 0 && autoProjectsStatus) {
+        autoProjectsStatus.textContent = 'A seleção complementar atual já cobre os repositórios mais relevantes desta lista.';
+      }
+
       updateAutoProjectsVisibility();
     } catch (error) {
       if (autoProjectsStatus) {
@@ -312,6 +361,25 @@ document.addEventListener('DOMContentLoaded', () => {
       autoProjectsLoading = false;
       updateAutoProjectsSummary();
     }
+  }
+
+  async function ensureAutoProjectsLoaded() {
+    const existingCards = getAutoProjectCards();
+    if (existingCards.length > 0) {
+      if (autoProjectsVisibleCount === 0) {
+        autoProjectsVisibleCount = Math.min(existingCards.length, AUTO_PROJECTS_BATCH_SIZE);
+      }
+      updateAutoProjectsVisibility();
+      return;
+    }
+
+    await loadAdditionalAutoProjects();
+
+    if (autoProjectsVisibleCount === 0) {
+      autoProjectsVisibleCount = Math.min(AUTO_PROJECTS_BATCH_SIZE, getAutoProjectCards().length);
+    }
+
+    updateAutoProjectsVisibility();
   }
 
   projectFilterButtons.forEach((button) => {
@@ -351,7 +419,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (loadMoreAutoProjectsButton) {
-    loadMoreAutoProjectsButton.addEventListener('click', () => {
+    loadMoreAutoProjectsButton.addEventListener('click', async () => {
+      if (!autoProjectsLoaded) {
+        await loadAdditionalAutoProjects();
+      }
+
       autoProjectsVisibleCount += AUTO_PROJECTS_BATCH_SIZE;
       updateAutoProjectsVisibility();
     });

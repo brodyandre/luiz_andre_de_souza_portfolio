@@ -23,6 +23,7 @@ from urllib import error, parse, request
 AUTO_PROJECTS_START = "<!-- github-auto-projects:start -->"
 AUTO_PROJECTS_END = "<!-- github-auto-projects:end -->"
 DEFAULT_COMMIT_MESSAGE = "chore: refresh auto-managed GitHub projects"
+DEFAULT_AUTO_PROJECT_LIMIT = 10
 USER_AGENT = "portfolio-maintenance-script/2.0"
 MANAGED_BLOCK_PATTERN = re.compile(
     r"(?P<indent>^[ \t]*)<!-- github-auto-projects:start -->\n?"
@@ -37,9 +38,54 @@ CURATED_REPOSITORIES = {
     "aws-lakehouse-engineering-lab",
     "azure-snowflake-dbt-local-data-platform",
     "data-quality-api-continuous-delivery-lab",
-    "dataops-github-actions-lab",
     "kubernetes-deploy-strategies-lab",
     "nodejs-jenkins-k8s-cicd-lab",
+}
+
+PRIORITY_COMPLEMENTARY_REPOSITORIES = [
+    "dataops-github-actions-lab",
+    "github-actions-self-hosted-runner-lab",
+    "kubernetes-security-hardening-lab",
+    "kubernetes-update-strategies-lab",
+    "kubernetes-resilience-ha-lab",
+    "marketing-data-engineering-pipeline-lab",
+    "product-reviews-cicd-pipeline-lab",
+    "churninsight-nocountry",
+    "growth_equestre_hackathon_2026",
+    "kubernetes-storage-volumes-lab",
+]
+
+DESCRIPTION_OVERRIDES = {
+    "dataops-github-actions-lab": (
+        "Laboratório de DataOps com GitHub Actions, automação de pipelines, validações e práticas de CI/CD."
+    ),
+    "github-actions-self-hosted-runner-lab": (
+        "Repositório público com estudos e testes práticos sobre self-hosted runners no GitHub Actions."
+    ),
+    "kubernetes-security-hardening-lab": (
+        "Repositório público com estudos e testes práticos sobre hardening e segurança em workloads Kubernetes."
+    ),
+    "kubernetes-update-strategies-lab": (
+        "Repositório público com estudos e testes práticos sobre estratégias de atualização e rollout no Kubernetes."
+    ),
+    "kubernetes-resilience-ha-lab": (
+        "Repositório público com estudos e testes práticos de resiliência e alta disponibilidade em Kubernetes."
+    ),
+    "marketing-data-engineering-pipeline-lab": (
+        "Repositório público com estudos e testes práticos de pipeline de Engenharia de Dados aplicado a dados de marketing."
+    ),
+    "product-reviews-cicd-pipeline-lab": (
+        "Repositório público com estudos e testes práticos de CI/CD aplicados a um fluxo de avaliações de produtos."
+    ),
+    "churninsight-nocountry": (
+        "MVP de previsão de churn para hackathon, combinando análise de dados e uma API para disponibilização do modelo."
+    ),
+    "growth_equestre_hackathon_2026": (
+        "MVP de hackathon para captação e qualificação de leads, com backend, scoring e orquestração local via Docker Compose."
+    ),
+    "kubernetes-storage-volumes-lab": (
+        "Laboratório de Kubernetes focado em volumes, persistência, StorageClass, ConfigMap, Secret e gestão de recursos."
+    ),
 }
 
 
@@ -134,8 +180,10 @@ class SafePortfolioUpdater:
                 deduplicated.append(tag)
         return deduplicated[:5]
 
-    def normalize_description(self, description: str) -> str:
+    def normalize_description(self, description: str, repo_name: str = "") -> str:
         fallback = "Repositório público com estudos, testes e implementações práticas."
+        if repo_name in DESCRIPTION_OVERRIDES:
+            return DESCRIPTION_OVERRIDES[repo_name]
         normalized = re.sub(r"\s+", " ", description or "").strip()
         normalized = re.sub(r"^\s*[^\wÀ-ÿ]+", "", normalized)
         normalized = re.sub(r"\s*\(Confira.*?\)\s*$", "", normalized, flags=re.IGNORECASE)
@@ -164,16 +212,38 @@ class SafePortfolioUpdater:
             normalized += "."
         return normalized
 
-    def repo_cards(self, repositories: Iterable[dict]) -> list[ProjectCard]:
-        cards: list[ProjectCard] = []
+    def ordered_repositories(self, repositories: Iterable[dict]) -> list[dict]:
+        filtered_repositories = []
         for repo in repositories:
             name = repo.get("name") or ""
             if not name or name in CURATED_REPOSITORIES:
                 continue
             if repo.get("private"):
                 continue
+            filtered_repositories.append(repo)
 
-            description = self.normalize_description((repo.get("description") or "").strip())
+        repositories_by_name = {
+            (repo.get("name") or ""): repo for repo in filtered_repositories
+        }
+
+        prioritized_repositories = []
+        for repository_name in PRIORITY_COMPLEMENTARY_REPOSITORIES:
+            repo = repositories_by_name.pop(repository_name, None)
+            if repo:
+                prioritized_repositories.append(repo)
+
+        remaining_repositories = [
+            repo
+            for repo in filtered_repositories
+            if (repo.get("name") or "") in repositories_by_name
+        ]
+        return prioritized_repositories + remaining_repositories
+
+    def repo_cards(self, repositories: Iterable[dict]) -> list[ProjectCard]:
+        cards: list[ProjectCard] = []
+        for repo in self.ordered_repositories(repositories):
+            name = repo.get("name") or ""
+            description = self.normalize_description((repo.get("description") or "").strip(), name)
 
             cards.append(
                 ProjectCard(
@@ -354,8 +424,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--limit",
         type=int,
-        default=0,
+        default=DEFAULT_AUTO_PROJECT_LIMIT,
         help="Quantidade máxima de repositórios automáticos a renderizar. Use 0 para incluir todos os elegíveis.",
+    )
+    parser.add_argument(
+        "--all-projects",
+        action="store_true",
+        help="Inclui explicitamente todos os repositórios elegíveis no bloco automatizado.",
     )
     parser.add_argument(
         "--per-page",
@@ -399,6 +474,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def validate_args(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if args.all_projects:
+        args.limit = 0
     if args.commit and not args.apply:
         parser.error("--commit exige --apply.")
     if args.push and not args.commit:
