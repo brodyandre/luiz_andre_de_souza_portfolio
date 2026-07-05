@@ -1,214 +1,392 @@
+#!/usr/bin/env python3
+"""Atualiza com segurança apenas a area opcional de projetos do GitHub.
+
+O script roda em dry-run por padrao.
+Use --apply para escrever em arquivo, --commit para criar commit e --push
+para enviar ao remoto. A secao curada manualmente nunca e alterada.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
 import os
-import re
-import time
-import base64
 import pathlib
-import mimetypes
-import hashlib
-import requests
+import re
 import subprocess
-from urllib.parse import urlparse
-from dotenv import load_dotenv
+import sys
+from dataclasses import dataclass
 from html import escape
+from typing import Iterable
+from urllib import error, parse, request
 
-class GitHubPortfolio:
-    def __init__(self, username: str, pages_dir: str):
-        load_dotenv()
-        self.username = username
-        self.pages_dir = pathlib.Path(pages_dir).resolve()
-        self.html_path = self.pages_dir / "index.html"
-        self.assets_dir = self.pages_dir / "assets"
-        self.output_path = self.html_path
-        self.token = os.getenv("GITHUB_TOKEN", "")
+AUTO_PROJECTS_START = "<!-- github-auto-projects:start -->"
+AUTO_PROJECTS_END = "<!-- github-auto-projects:end -->"
+DEFAULT_COMMIT_MESSAGE = "chore: refresh auto-managed GitHub projects"
+USER_AGENT = "portfolio-maintenance-script/2.0"
+MANAGED_BLOCK_PATTERN = re.compile(
+    r"(?P<indent>^[ \t]*)<!-- github-auto-projects:start -->\n?"
+    r"(?P<content>.*?)"
+    r"(?P=indent)<!-- github-auto-projects:end -->",
+    re.MULTILINE | re.DOTALL,
+)
+
+# Repositorios curados manualmente no portfolio para recrutadores.
+CURATED_REPOSITORIES = {
+    "agente-ia-manuais-rh-rag",
+    "aws-lakehouse-engineering-lab",
+    "azure-snowflake-dbt-local-data-platform",
+    "data-quality-api-continuous-delivery-lab",
+    "dataops-github-actions-lab",
+    "nodejs-jenkins-k8s-cicd-lab",
+}
+
+
+@dataclass
+class ProjectCard:
+    name: str
+    description: str
+    link: str
+    tags: list[str]
+    project_type: str = "GitHub automatizado"
+
+
+class SafePortfolioUpdater:
+    def __init__(self, args: argparse.Namespace):
+        self.args = args
+        self.username = args.username
+        self.pages_dir = pathlib.Path(args.pages_dir).resolve()
+        self.html_path = self.pages_dir / args.html_file
+        self.token = os.getenv("GITHUB_TOKEN", "").strip()
         self.base_url = "https://api.github.com"
-        self.assets_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- HTTP helpers ---
-    def get_headers(self):
-        headers = {"Accept": "application/vnd.github.v3+json"}
+    def log(self, message: str) -> None:
+        print(message)
+
+    def get_headers(self) -> dict[str, str]:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": USER_AGENT,
+        }
         if self.token:
             headers["Authorization"] = f"token {self.token}"
         return headers
 
-    def fetch_with_retry(self, url, retries=3):
-        last_err = None
-        for attempt in range(1, retries + 1):
-            try:
-                resp = requests.get(url, headers=self.get_headers(), timeout=60)
-                if resp.status_code == 403 and resp.headers.get("X-RateLimit-Remaining") == "0":
-                    reset_time = int(resp.headers.get("X-RateLimit-Reset", "0"))
-                    wait_time = max(0, reset_time - int(time.time()) + 1)
-                    print(f"Rate limit atingido. Aguardando {wait_time}s…")
-                    time.sleep(wait_time)
-                    continue
-                resp.raise_for_status()
-                return resp
-            except Exception as e:
-                last_err = e
-                time.sleep(1)
-        raise last_err
-
-    # --- GitHub data ---
-    def fetch_all_repos(self, per_page=30, max_pages=2):
-        repos = []
-        for page in range(1, max_pages + 1):
-            url = f"{self.base_url}/users/{self.username}/repos?per_page={per_page}&page={page}&sort=updated"
-            resp = self.fetch_with_retry(url)
-            data = resp.json()
-            repos.extend(data)
-            if len(data) < per_page:
-                break
-            time.sleep(1)
-        return repos
-
-    def fetch_readme(self, repo_name):
-        url = f"{self.base_url}/repos/{self.username}/{repo_name}/readme"
-        resp = requests.get(url, headers=self.get_headers())
-        if resp.status_code == 404:
-            print(f"[INFO] Repositório '{repo_name}' não possui README.md")
-            return None  # <-- ignora se não houver README
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("encoding") == "base64" and "content" in data:
-            return base64.b64decode(data["content"]).decode("utf-8", errors="ignore")
-        return None
-
-
-    # --- Conteúdo ---
-    def extract_description(self, readme_content):
-        if not readme_content:
-            return "Descrição não disponível."
-        paragraphs = re.split(r"\r?\n\r?\n", readme_content)
-        for p in paragraphs:
-            text = p.strip()
-            if not text:
-                continue
-            text = re.sub(r"!\[.*?\]\(.*?\)", "", text)
-            text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
-            text = re.sub(r"[>#*_`~\-]{1,}", " ", text)
-            text = re.sub(r"\s+", " ", text).strip()
-            if len(text) > 20:
-                return text
-        return "Descrição não disponível."
-
-    def repo_languages(self, repo):
-        langs = []
-        if repo.get("language"):
-            langs.append(repo["language"].lower())
-        name = (repo.get("name") or "").lower()
-        desc = (repo.get("description") or "").lower()
-        if "aws" in name or "aws" in desc:
-            langs.append("aws")
-        if "spark" in name or (repo.get("language") or "").lower() == "scala":
-            langs.append("spark")
-        if (repo.get("language") or "").lower() == "python":
-            langs.append("python")
-        return sorted(set(langs))
-
-    def render_cards_html(self, projetos):
-        cards = []
-        for p in projetos:
-            tags_html = "".join(f'<span class="linguagem-tag {escape(lang)}">{escape(lang)}</span>' for lang in p["languages"])
-            card = f"""
-            <div class="projeto-card">
-                <h3>{escape(p["title"])}</h3>
-                <p>{escape(p["description"])}</p>
-                <div class="projeto-linguagens">{tags_html}</div>
-                <a href="{p["link"]}" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver detalhes</a>
-            </div>
-            """
-            cards.append(card)
-        return "\n".join(cards)
-
-    # --- Assets ---
-    def _hash_name(self, url: str) -> str:
-        parsed = urlparse(url)
-        base = os.path.basename(parsed.path)
-        name, ext = os.path.splitext(base)
-        if not ext:
-            ext = mimetypes.guess_extension(requests.head(url, allow_redirects=True).headers.get("Content-Type", "")) or ""
-        digest = hashlib.sha1(url.encode("utf-8")).hexdigest()[:10]
-        return f"{name}-{digest}{ext}" if name else f"asset-{digest}{ext}"
-
-    def _download_url(self, url: str) -> str:
+    def fetch_json(self, url: str) -> object:
+        req = request.Request(url, headers=self.get_headers())
         try:
-            resp = requests.get(url, headers=self.get_headers(), timeout=60, stream=True)
-            resp.raise_for_status()
-            filename = self._hash_name(url)
-            dst = self.assets_dir / filename
-            with open(dst, "wb") as f:
-                for chunk in resp.iter_content(8192):
-                    f.write(chunk)
-            return f"assets/{filename}"
-        except Exception as e:
-            print(f"[WARN] Falha ao baixar {url}: {e}")
-            return url
+            with request.urlopen(req, timeout=30) as response:
+                return json.load(response)
+        except error.HTTPError as exc:
+            if exc.code == 403 and exc.headers.get("X-RateLimit-Remaining") == "0":
+                raise RuntimeError(
+                    "GitHub API rate limit atingido. Rode novamente mais tarde ou defina GITHUB_TOKEN."
+                ) from exc
+            raise RuntimeError(f"Falha ao acessar GitHub API ({exc.code}) em {url}.") from exc
+        except error.URLError as exc:
+            raise RuntimeError(
+                "Falha de rede ao acessar a GitHub API. Verifique sua conexao ou tente novamente mais tarde."
+            ) from exc
 
-    def _collect_asset_urls(self, html: str):
-        urls = set()
-        urls.update(re.findall(r'data-imagem="(https?://[^"]+)"', html))
-        urls.update(re.findall(r'<img[^>]+src="(https?://[^"]+)"', html))
-        urls.update(re.findall(r'<link[^>]+rel="icon"[^>]+href="(https?://[^"]+)"', html))
-        urls.update(re.findall(r'<meta[^>]+property=["\']og:image["\'][^>]+content="(https?://[^"]+)"', html))
-        return sorted(urls)
+    def fetch_all_repositories(self) -> list[dict]:
+        repositories: list[dict] = []
+        for page in range(1, self.args.max_pages + 1):
+            query = parse.urlencode(
+                {
+                    "per_page": self.args.per_page,
+                    "page": page,
+                    "sort": "updated",
+                }
+            )
+            url = f"{self.base_url}/users/{self.username}/repos?{query}"
+            payload = self.fetch_json(url)
+            if not isinstance(payload, list):
+                raise RuntimeError("Resposta inesperada da GitHub API ao listar repositórios.")
 
-    def _rewrite_html_urls(self, html: str, url_map: dict):
-        for old, new in url_map.items():
-            html = html.replace(old, new)
-        return html
+            repositories.extend(payload)
+            if len(payload) < self.args.per_page:
+                break
 
-    def download_and_embed_assets(self, html: str) -> str:
-        urls = self._collect_asset_urls(html)
-        url_map = {u: self._download_url(u) for u in urls}
-        return self._rewrite_html_urls(html, url_map)
+        return repositories
 
-    # --- Atualização ---
-    def update_pages_site(self):
-        print(f"📂 Atualizando site na pasta: {self.pages_dir}")
-        repos = self.fetch_all_repos()
-        projetos = []
-        for repo in repos:
-            readme = self.fetch_readme(repo["name"])
-            projetos.append({
-                "title": repo["name"],
-                "description": self.extract_description(readme),
-                "languages": self.repo_languages(repo),
-                "link": repo["html_url"]
-            })
+    def repo_tags(self, repo: dict) -> list[str]:
+        tags: list[str] = []
+        language = (repo.get("language") or "").strip()
+        if language:
+            tags.append(language)
 
-        cards_html = self.render_cards_html(projetos)
+        name = (repo.get("name") or "").lower()
+        description = (repo.get("description") or "").lower()
 
-        with open(self.html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
+        if "aws" in name or "aws" in description:
+            tags.append("AWS")
+        if "kubernetes" in name or "k8s" in name or "kubernetes" in description:
+            tags.append("Kubernetes")
+        if "github actions" in description or "github-actions" in name:
+            tags.append("GitHub Actions")
+        if "docker" in description or "docker" in name:
+            tags.append("Docker")
 
-        new_html = re.sub(
-            r'(<div id="lista-projetos"[^>]*>)(.*?)(</div>)',
-            rf'\1\n{cards_html}\n\3',
-            html_content,
-            flags=re.DOTALL | re.IGNORECASE
+        deduplicated: list[str] = []
+        for tag in tags:
+            if tag not in deduplicated:
+                deduplicated.append(tag)
+        return deduplicated[:5]
+
+    def repo_cards(self, repositories: Iterable[dict]) -> list[ProjectCard]:
+        cards: list[ProjectCard] = []
+        for repo in repositories:
+            name = repo.get("name") or ""
+            if not name or name in CURATED_REPOSITORIES:
+                continue
+            if repo.get("fork") or repo.get("archived") or repo.get("private"):
+                continue
+
+            description = (repo.get("description") or "").strip()
+            if not description:
+                description = "Repositório público com estudos, experimentos e implementação prática."
+
+            cards.append(
+                ProjectCard(
+                    name=name,
+                    description=description,
+                    link=repo.get("html_url") or f"https://github.com/{self.username}/{name}",
+                    tags=self.repo_tags(repo),
+                )
+            )
+
+            if len(cards) >= self.args.limit:
+                break
+
+        return cards
+
+    def render_cards_html(self, cards: list[ProjectCard]) -> str:
+        if not cards:
+            return (
+                '<p class="github-auto-projects-placeholder">'
+                "Nenhum repositório adicional elegível foi encontrado para a área automatizada."
+                "</p>"
+            )
+
+        html_blocks = []
+        for card in cards:
+            tags_html = "".join(
+                f'<span class="linguagem-tag">{escape(tag)}</span>' for tag in card.tags
+            )
+            html_blocks.append(
+                "\n".join(
+                    [
+                        '<article class="projeto-card">',
+                        f'  <p class="projeto-tipo">{escape(card.project_type)}</p>',
+                        f"  <h3>{escape(card.name)}</h3>",
+                        f"  <p>{escape(card.description)}</p>",
+                        f'  <div class="projeto-linguagens">{tags_html}</div>',
+                        '  <div class="projeto-acoes">',
+                        (
+                            f'    <a href="{escape(card.link)}" class="projeto-link" '
+                            'target="_blank" rel="noopener noreferrer">Ver repositório</a>'
+                        ),
+                        "  </div>",
+                        "</article>",
+                    ]
+                )
+            )
+        return "\n\n".join(html_blocks)
+
+    def read_html(self) -> str:
+        if not self.html_path.exists():
+            raise FileNotFoundError(f"Arquivo HTML não encontrado: {self.html_path}")
+        return self.html_path.read_text(encoding="utf-8")
+
+    def replace_managed_block(self, html: str, rendered_cards: str) -> tuple[str, str]:
+        match = MANAGED_BLOCK_PATTERN.search(html)
+        if not match:
+            raise RuntimeError(
+                "Bloco gerenciado não encontrado. Adicione os comentários "
+                f"{AUTO_PROJECTS_START} e {AUTO_PROJECTS_END} ao HTML."
+            )
+
+        indent = match.group("indent")
+        current_block = match.group("content").strip()
+        indented_render = "\n".join(
+            f"{indent}{line}" if line else "" for line in rendered_cards.splitlines()
+        )
+        replacement = "\n".join(
+            [
+                f"{indent}{AUTO_PROJECTS_START}",
+                indented_render,
+                f"{indent}{AUTO_PROJECTS_END}",
+            ]
+        )
+        updated_html = MANAGED_BLOCK_PATTERN.sub(replacement, html, count=1)
+        return updated_html, current_block
+
+    def write_html(self, html: str) -> None:
+        self.html_path.write_text(html, encoding="utf-8")
+
+    def commit_changes(self) -> None:
+        self.log("Criando commit apenas com a atualização consciente do bloco automatizado.")
+        subprocess.run(
+            ["git", "-C", str(self.pages_dir), "add", self.html_path.name],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.pages_dir),
+                "commit",
+                "-m",
+                self.args.commit_message,
+            ],
+            check=True,
         )
 
-        new_html = self.download_and_embed_assets(new_html)
+    def push_changes(self) -> None:
+        self.log("Enviando alterações para o repositório remoto.")
+        subprocess.run(["git", "-C", str(self.pages_dir), "push"], check=True)
 
-        with open(self.output_path, "w", encoding="utf-8") as f:
-            f.write(new_html)
+    def print_plan(self, cards: list[ProjectCard], changed: bool) -> None:
+        mode = "APPLY" if self.args.apply else "DRY-RUN"
+        self.log(f"[{mode}] Seção curada manualmente não será alterada.")
+        self.log(
+            f"[{mode}] Apenas o bloco entre {AUTO_PROJECTS_START} e {AUTO_PROJECTS_END} pode ser atualizado."
+        )
+        self.log(f"[{mode}] Repositórios automáticos elegíveis: {len(cards)}")
+        preview = min(len(cards), self.args.preview)
+        if preview:
+            self.log(f"[{mode}] Prévia dos primeiros {preview} repositórios:")
+            for card in cards[:preview]:
+                self.log(f"  - {card.name}")
+        else:
+            self.log(f"[{mode}] Nenhum repositório automático elegível encontrado.")
 
-        print("✅ Site atualizado com sucesso!")
+        if changed:
+            self.log(f"[{mode}] Alterações foram detectadas em {self.html_path.name}.")
+        else:
+            self.log(f"[{mode}] Nenhuma alteração necessária em {self.html_path.name}.")
 
-    # --- Git automation ---
-    def commit_and_push(self, commit_msg="Atualização automática do portfólio"):
+        if not self.args.apply:
+            self.log("[DRY-RUN] Nenhum arquivo foi modificado. Use --apply para gravar.")
+        elif self.args.apply and not self.args.commit:
+            self.log("[APPLY] Arquivo atualizado localmente sem commit automático.")
+        elif self.args.commit and not self.args.push:
+            self.log("[COMMIT] Commit será criado localmente sem push automático.")
+
+    def run(self) -> int:
+        html = self.read_html()
         try:
-            subprocess.run(["git", "-C", str(self.pages_dir), "add", "."], check=True)
-            subprocess.run(["git", "-C", str(self.pages_dir), "commit", "-m", commit_msg], check=True)
-            subprocess.run(["git", "-C", str(self.pages_dir), "push"], check=True)
-            print("🚀 Alterações enviadas para o GitHub Pages!")
-        except subprocess.CalledProcessError as e:
-            print(f"[ERRO] Falha no comando Git: {e}")
+            repositories = self.fetch_all_repositories()
+        except RuntimeError as exc:
+            if self.args.apply:
+                raise
+            self.log(f"[DRY-RUN] {exc}")
+            self.log("[DRY-RUN] Nenhum arquivo foi modificado. Tente novamente com rede disponível para simular a atualização.")
+            return 0
+        cards = self.repo_cards(repositories)
+        rendered_cards = self.render_cards_html(cards)
+        updated_html, current_block = self.replace_managed_block(html, rendered_cards)
+        next_block = rendered_cards.strip()
+        changed = current_block != next_block
+
+        self.print_plan(cards, changed)
+
+        if not changed:
+            return 0
+
+        if not self.args.apply:
+            return 0
+
+        self.write_html(updated_html)
+        self.log(f"[APPLY] {self.html_path.name} foi atualizado apenas no bloco gerenciado.")
+
+        if self.args.commit:
+            self.commit_changes()
+
+        if self.args.push:
+            self.push_changes()
+
+        return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Atualiza com segurança apenas a área opcional de projetos do GitHub. "
+            "Dry-run é o comportamento padrão."
+        )
+    )
+    parser.add_argument("--username", default="brodyandre", help="Usuário GitHub a consultar.")
+    parser.add_argument("--pages-dir", default=".", help="Raiz local do portfólio.")
+    parser.add_argument("--html-file", default="index.html", help="Arquivo HTML principal.")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=6,
+        help="Quantidade máxima de repositórios automáticos a renderizar.",
+    )
+    parser.add_argument(
+        "--per-page",
+        type=int,
+        default=30,
+        help="Quantidade de repositórios por página na GitHub API.",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=2,
+        help="Quantidade máxima de páginas a consultar na GitHub API.",
+    )
+    parser.add_argument(
+        "--preview",
+        type=int,
+        default=5,
+        help="Quantidade de itens exibidos no resumo do dry-run/apply.",
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Grava conscientemente alterações reais no arquivo HTML.",
+    )
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help="Cria commit local explicitamente após --apply.",
+    )
+    parser.add_argument(
+        "--push",
+        action="store_true",
+        help="Envia explicitamente para o remoto após --apply --commit.",
+    )
+    parser.add_argument(
+        "--commit-message",
+        default=DEFAULT_COMMIT_MESSAGE,
+        help="Mensagem de commit usada com --commit.",
+    )
+    return parser
+
+
+def validate_args(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if args.commit and not args.apply:
+        parser.error("--commit exige --apply.")
+    if args.push and not args.commit:
+        parser.error("--push exige --commit.")
+    if args.limit < 0:
+        parser.error("--limit deve ser maior ou igual a zero.")
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    validate_args(args, parser)
+
+    updater = SafePortfolioUpdater(args)
+    try:
+        return updater.run()
+    except Exception as exc:  # pragma: no cover - saída operacional
+        print(f"[ERRO] {exc}", file=sys.stderr)
+        return 1
+
 
 if __name__ == "__main__":
-    github = GitHubPortfolio(
-        username="brodyandre",   # ✅ seu usuário GitHub
-        pages_dir="."            # ✅ raiz do repositório local
-    )
-    github.update_pages_site()
-    github.commit_and_push()
+    raise SystemExit(main())

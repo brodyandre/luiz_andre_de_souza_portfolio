@@ -32,6 +32,47 @@ Apresentar rapidamente o cargo-alvo, destacar projetos com valor profissional cl
 - Certificações com filtro por ano
 - Contato com abertura de e-mail via `mailto:`
 
+## Manutenção dos projetos
+
+Os `Projetos em destaque` do portfólio são curados manualmente para recrutadores e não devem ser sobrescritos por automação.
+
+O script [atualiza_portfolio.py](./atualiza_portfolio.py) atua apenas na área delimitada por:
+
+```html
+<!-- github-auto-projects:start -->
+<!-- github-auto-projects:end -->
+```
+
+Essa área serve para repositórios adicionais do GitHub e não substitui a curadoria manual da seção principal.
+
+### Uso seguro do script
+
+Dry-run padrão:
+
+```bash
+python3 atualiza_portfolio.py
+```
+
+Aplicar alterações conscientemente:
+
+```bash
+python3 atualiza_portfolio.py --apply
+```
+
+Aplicar e criar commit local:
+
+```bash
+python3 atualiza_portfolio.py --apply --commit
+```
+
+Aplicar, criar commit e enviar ao remoto:
+
+```bash
+python3 atualiza_portfolio.py --apply --commit --push
+```
+
+`Commit` e `push` automático não são padrão e sempre exigem flags explícitas.
+
 ## Como executar localmente
 
 Como este projeto é um site estático, basta servir os arquivos localmente:
