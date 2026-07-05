@@ -131,8 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const cardsHtml = repositories.map((repo) => {
-      const description = repo.description?.trim()
-        || 'Repositório público complementar com estudos, automações e implementação prática.';
+      const description = normalizeRepositoryDescription(repo.description);
       const tagsHtml = inferAutoProjectTags(repo)
         .map((tag) => `<span class="linguagem-tag">${escapeHtml(tag)}</span>`)
         .join('');
@@ -155,6 +154,40 @@ document.addEventListener('DOMContentLoaded', () => {
     autoProjectsList.innerHTML = cardsHtml;
   }
 
+  function normalizeRepositoryDescription(description) {
+    const fallback = 'Repositório público com estudos, testes e implementações práticas.';
+    const cleanedDescription = String(description || '')
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*[^\p{L}\p{N}]+/u, '')
+      .replace(/\s*\(Confira.*?\)\s*$/iu, '')
+      .trim();
+
+    if (!cleanedDescription) {
+      return fallback;
+    }
+
+    let normalizedDescription = cleanedDescription
+      .replace(/\bvc\b/gi, 'você')
+      .replace(/\bdesfio\b/gi, 'desafio')
+      .replace(/\bdatascience\b/gi, 'Data Science')
+      .replace(/\bjava script\b/gi, 'JavaScript')
+      .replace(/\bapp\b/gi, 'aplicação')
+      .replace(/\bpython\b/gi, 'Python')
+      .replace(/\bseguimento\b/gi, 'segmento')
+      .replace(/^aqui você encontrará um projeto completo para\b/i, 'Projeto com')
+      .replace(/^esse aplicativo\b/i, 'Este aplicativo')
+      .replace(/^esse projeto\b/i, 'Este projeto')
+      .replace(/^esse desafio\b/i, 'Este desafio');
+
+    normalizedDescription = normalizedDescription.charAt(0).toUpperCase() + normalizedDescription.slice(1);
+
+    if (!/[.!?]$/.test(normalizedDescription)) {
+      normalizedDescription += '.';
+    }
+
+    return normalizedDescription;
+  }
+
   function updateAutoProjectsSummary() {
     const totalCards = getAutoProjectCards().length;
 
@@ -167,10 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toggleAutoProjectsButton) {
       const isExpanded = toggleAutoProjectsButton.getAttribute('aria-expanded') === 'true';
       toggleAutoProjectsButton.textContent = isExpanded
-        ? 'Recolher lista complementar'
+        ? 'Ocultar lista complementar'
         : totalCards > 0
-          ? `Explorar mais ${totalCards} repositórios`
-          : 'Explorar demais repositórios';
+          ? `Ver outros ${totalCards} repositórios`
+          : 'Ver outros repositórios';
     }
   }
 
@@ -187,9 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (totalCards === 0) {
         autoProjectsStatus.textContent = 'Nenhum repositório complementar está disponível nesta lista no momento.';
       } else if (visibleCards >= totalCards) {
-        autoProjectsStatus.textContent = `Mostrando todos os ${totalCards} repositórios complementares disponíveis.`;
+        autoProjectsStatus.textContent = `Exibindo todos os ${totalCards} repositórios complementares disponíveis.`;
       } else {
-        autoProjectsStatus.textContent = `Mostrando ${visibleCards} de ${totalCards} repositórios complementares.`;
+        autoProjectsStatus.textContent = `Exibindo ${visibleCards} de ${totalCards} repositórios complementares.`;
       }
     }
 
@@ -198,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadMoreAutoProjectsButton.hidden = remainingCards <= 0;
       if (remainingCards > 0) {
         const nextBatch = Math.min(AUTO_PROJECTS_BATCH_SIZE, remainingCards);
-        loadMoreAutoProjectsButton.textContent = `Mostrar mais ${nextBatch} repositórios`;
+        loadMoreAutoProjectsButton.textContent = `Carregar mais ${nextBatch} repositórios`;
       }
     }
 
@@ -269,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateAutoProjectsVisibility();
     } catch (error) {
       if (autoProjectsStatus) {
-        autoProjectsStatus.textContent = 'Não foi possível carregar a lista complementar agora. Se preferir, use o link direto para ver todos os repositórios no GitHub.';
+        autoProjectsStatus.textContent = 'Não foi possível carregar a lista complementar agora. Se preferir, use o link ao lado para abrir todos os repositórios no GitHub.';
       }
       if (loadMoreAutoProjectsButton) {
         loadMoreAutoProjectsButton.hidden = true;

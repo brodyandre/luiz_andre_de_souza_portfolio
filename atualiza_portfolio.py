@@ -38,6 +38,7 @@ CURATED_REPOSITORIES = {
     "azure-snowflake-dbt-local-data-platform",
     "data-quality-api-continuous-delivery-lab",
     "dataops-github-actions-lab",
+    "kubernetes-deploy-strategies-lab",
     "nodejs-jenkins-k8s-cicd-lab",
 }
 
@@ -133,6 +134,36 @@ class SafePortfolioUpdater:
                 deduplicated.append(tag)
         return deduplicated[:5]
 
+    def normalize_description(self, description: str) -> str:
+        fallback = "Repositório público com estudos, testes e implementações práticas."
+        normalized = re.sub(r"\s+", " ", description or "").strip()
+        normalized = re.sub(r"^\s*[^\wÀ-ÿ]+", "", normalized)
+        normalized = re.sub(r"\s*\(Confira.*?\)\s*$", "", normalized, flags=re.IGNORECASE)
+
+        if not normalized:
+            return fallback
+
+        replacements = [
+            (r"\bvc\b", "você"),
+            (r"\bdesfio\b", "desafio"),
+            (r"\bdatascience\b", "Data Science"),
+            (r"\bjava script\b", "JavaScript"),
+            (r"\bapp\b", "aplicação"),
+            (r"\bpython\b", "Python"),
+            (r"\bseguimento\b", "segmento"),
+            (r"^aqui você encontrará um projeto completo para\b", "Projeto com"),
+            (r"^esse aplicativo\b", "Este aplicativo"),
+            (r"^esse projeto\b", "Este projeto"),
+            (r"^esse desafio\b", "Este desafio"),
+        ]
+        for pattern, replacement in replacements:
+            normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+
+        normalized = normalized[0].upper() + normalized[1:]
+        if normalized[-1] not in ".!?":
+            normalized += "."
+        return normalized
+
     def repo_cards(self, repositories: Iterable[dict]) -> list[ProjectCard]:
         cards: list[ProjectCard] = []
         for repo in repositories:
@@ -142,9 +173,7 @@ class SafePortfolioUpdater:
             if repo.get("private"):
                 continue
 
-            description = (repo.get("description") or "").strip()
-            if not description:
-                description = "Repositório público com estudos, experimentos e implementação prática."
+            description = self.normalize_description((repo.get("description") or "").strip())
 
             cards.append(
                 ProjectCard(
