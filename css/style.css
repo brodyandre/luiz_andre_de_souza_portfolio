@@ -122,12 +122,22 @@ h1, h2, h3 {
   min-width: min(100%, 320px);
 }
 
+#sobre .hero-content {
+  display: grid;
+  gap: 0.9rem;
+}
+
 #sobre img {
   border-radius: 50%;
   width: 200px;
   height: 200px;
   object-fit: cover;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#sobre h1,
+.hero-content p {
+  margin: 0;
 }
 
 .hero-eyebrow {
@@ -138,20 +148,37 @@ h1, h2, h3 {
   text-transform: uppercase;
 }
 
+.hero-stack {
+  color: var(--text-color);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .hero-lead {
   font-size: 1.1rem;
   font-weight: 600;
+  max-width: 60ch;
 }
 
 .experiencia-destaque {
   background-color: var(--card-bg);
   padding: 1rem;
   border-radius: 8px;
-  margin: 1rem 0;
+  margin: 0.25rem 0 0;
+}
+
+.hero-highlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .experiencia-destaque p {
-  margin: 0.5rem 0;
+  margin: 0;
+  padding-left: 0.85rem;
+  border-left: 3px solid var(--secondary-color);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .redes {
@@ -171,6 +198,10 @@ h1, h2, h3 {
   text-decoration: none;
   border-radius: 4px;
   transition: background-color 0.3s, transform 0.2s;
+}
+
+.btn-rede-principal {
+  background-color: var(--secondary-color);
 }
 
 .btn-rede:hover {
@@ -315,6 +346,22 @@ h1, h2, h3 {
 .projects-footer a {
   color: var(--secondary-color);
   font-weight: 600;
+}
+
+.github-auto-projects {
+  margin-top: 3rem;
+}
+
+.github-auto-projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.github-auto-projects-placeholder {
+  grid-column: 1 / -1;
+  color: var(--muted-text-color);
+  text-align: center;
 }
 
 /* Seção Skills */
@@ -612,6 +659,25 @@ footer {
     flex-direction: column;
     text-align: center;
   }
+
+  .hero-lead {
+    max-width: none;
+  }
+
+  .hero-highlights {
+    grid-template-columns: 1fr;
+  }
+
+  .experiencia-destaque p {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 3px solid var(--secondary-color);
+    padding-top: 0.75rem;
+  }
+
+  .redes.hero-actions {
+    justify-content: center;
+  }
   
   .contato-container {
     grid-template-columns: 1fr;
@@ -636,6 +702,15 @@ footer {
 @media (max-width: 480px) {
   main {
     padding: 0 1rem;
+  }
+
+  .redes.hero-actions {
+    gap: 0.75rem;
+  }
+
+  .hero-actions .btn-rede {
+    width: 100%;
+    justify-content: center;
   }
 
   #lista-projetos {
