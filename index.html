@@ -25,6 +25,35 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://github.com" crossorigin>
   <link rel="preconnect" href="https://linkedin.com" crossorigin>
+
+  <script>
+    (function () {
+      try {
+        var storedTheme = localStorage.getItem('portfolioTheme');
+        var legacyDarkTheme = localStorage.getItem('darkTheme');
+        var themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        var themeColors = {
+          light: '#2c3e50',
+          neutral: '#3a3935',
+          dark: '#121211'
+        };
+        var theme = storedTheme;
+
+        if (!theme && legacyDarkTheme === 'true') {
+          theme = 'dark';
+        }
+
+        if (theme === 'light' || theme === 'neutral' || theme === 'dark') {
+          document.documentElement.dataset.theme = theme;
+          if (themeColorMeta) {
+            themeColorMeta.setAttribute('content', themeColors[theme]);
+          }
+        }
+      } catch (error) {
+        // Ignora falhas de storage para não bloquear a renderização.
+      }
+    }());
+  </script>
   
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/84652653-3036b4b84c.jpg" type="image/jpeg">
@@ -95,8 +124,15 @@
       <li><a href="#skills">Skills</a></li>
       <li><a href="#certificacoes">Certificações</a></li>
       <li><a href="#contato">Contato</a></li>
-      <li>
-        <button id="theme-toggle" aria-label="Alternar tema claro/escuro" aria-pressed="false">🌓</button>
+      <li class="theme-picker-item">
+        <div class="theme-picker" role="group" aria-label="Preferência de tema">
+          <span class="theme-picker-label">Tema</span>
+          <div class="theme-picker-options" role="radiogroup" aria-label="Escolher tema do portfólio">
+            <button type="button" class="theme-option" data-theme-value="light" role="radio" aria-checked="false">Claro</button>
+            <button type="button" class="theme-option" data-theme-value="neutral" role="radio" aria-checked="false">Neutro</button>
+            <button type="button" class="theme-option" data-theme-value="dark" role="radio" aria-checked="false">Escuro</button>
+          </div>
+        </div>
       </li>
     </ul>
   </nav>
@@ -119,7 +155,7 @@
         <p>Projetos práticos de Engenharia de Dados, automação e integração</p>
         <p>CI/CD, qualidade de dados e documentação orientada à execução</p>
         <p>Ambientes local-first com Docker, Kubernetes e GitHub Actions</p>
-        <p>Projetos organizados para leitura técnica em processos seletivos</p>
+        <p>Projetos organizados com contexto técnico claro</p>
       </div>
 
       <div class="redes hero-actions" aria-label="Ações principais do portfólio">
@@ -147,8 +183,7 @@
 
   <section id="projetos" tabindex="-1" aria-label="Projetos de Luiz André de Souza">
     <h2>Projetos em destaque</h2>
-    <p class="section-intro">Seleção manual de seis projetos que resume o tipo de trabalho que venho desenvolvendo em Engenharia de Dados, Cloud, DataOps, DevOps e IA aplicada. Os cards abaixo aparecem de forma estática no portfólio e apresentam escopo, stack principal e competências exercitadas em cada laboratório.</p>
-    <p class="projects-curation-note">A curadoria prioriza projetos com melhor contexto profissional, boa documentação e escopo honesto de laboratório, sem depender exclusivamente da API do GitHub para serem vistos.</p>
+    <p class="section-intro">Seis projetos escolhidos para mostrar, de forma objetiva, como venho trabalhando com Engenharia de Dados, Cloud, DataOps, DevOps e IA aplicada. Cada card resume contexto, stack principal e competências exercitadas em cada laboratório.</p>
     <div class="filtro" role="radiogroup" aria-label="Filtro de projetos por área">
       <button type="button" class="active" data-language="all" aria-checked="true" role="radio">Todos</button>
       <button type="button" data-language="data-engineering" aria-checked="false" role="radio">Engenharia de Dados</button>

@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const certificationFilterButtons = document.querySelectorAll('.filtro-certificacoes button');
   const certificatesContainer = document.getElementById('certificados-lista');
   const backToTopButton = document.getElementById('back-to-top');
-  const themeToggle = document.getElementById('theme-toggle');
+  const themeOptionButtons = Array.from(document.querySelectorAll('[data-theme-value]'));
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const currentYear = document.getElementById('current-year');
   const autoProjectsList = document.getElementById('github-auto-projects-list');
   const autoProjectsPanel = document.getElementById('github-auto-projects-panel');
@@ -493,20 +494,97 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      const isDark = document.body.classList.toggle('dark-theme');
-      localStorage.setItem('darkTheme', String(isDark));
-      themeToggle.textContent = isDark ? '🌞' : '🌓';
-      themeToggle.setAttribute('aria-pressed', String(isDark));
-    });
+  const AVAILABLE_THEMES = ['light', 'neutral', 'dark'];
+  const THEME_COLORS = {
+    light: '#2c3e50',
+    neutral: '#3a3935',
+    dark: '#121211'
+  };
 
-    if (localStorage.getItem('darkTheme') === 'true') {
-      document.body.classList.add('dark-theme');
-      themeToggle.textContent = '🌞';
-      themeToggle.setAttribute('aria-pressed', 'true');
+  function normalizeTheme(theme) {
+    return AVAILABLE_THEMES.includes(theme) ? theme : 'light';
+  }
+
+  function getStoredTheme() {
+    try {
+      const storedTheme = localStorage.getItem('portfolioTheme');
+      if (AVAILABLE_THEMES.includes(storedTheme)) {
+        return storedTheme;
+      }
+
+      if (localStorage.getItem('darkTheme') === 'true') {
+        return 'dark';
+      }
+    } catch (error) {
+      return 'light';
+    }
+
+    return 'light';
+  }
+
+  function updateThemeOptions(activeTheme) {
+    themeOptionButtons.forEach((button) => {
+      const isActive = button.dataset.themeValue === activeTheme;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-checked', String(isActive));
+      button.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+  }
+
+  function applyTheme(theme, { persist = true } = {}) {
+    const normalizedTheme = normalizeTheme(theme);
+    document.documentElement.dataset.theme = normalizedTheme;
+    document.body.classList.remove('dark-theme');
+
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', THEME_COLORS[normalizedTheme]);
+    }
+
+    updateThemeOptions(normalizedTheme);
+
+    if (persist) {
+      try {
+        localStorage.setItem('portfolioTheme', normalizedTheme);
+        localStorage.removeItem('darkTheme');
+      } catch (error) {
+        // Ignora falhas de storage para manter a troca visual funcionando.
+      }
     }
   }
+
+  if (themeOptionButtons.length > 0) {
+    themeOptionButtons.forEach((button, index) => {
+      button.addEventListener('click', () => {
+        applyTheme(button.dataset.themeValue || 'light');
+      });
+
+      button.addEventListener('keydown', (event) => {
+        const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+        if (!navigationKeys.includes(event.key)) {
+          return;
+        }
+
+        event.preventDefault();
+
+        let nextIndex = index;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          nextIndex = (index + 1) % themeOptionButtons.length;
+        } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+          nextIndex = (index - 1 + themeOptionButtons.length) % themeOptionButtons.length;
+        } else if (event.key === 'Home') {
+          nextIndex = 0;
+        } else if (event.key === 'End') {
+          nextIndex = themeOptionButtons.length - 1;
+        }
+
+        const nextButton = themeOptionButtons[nextIndex];
+        nextButton?.focus();
+        applyTheme(nextButton?.dataset.themeValue || 'light');
+      });
+    });
+  }
+
+  applyTheme(getStoredTheme(), { persist: false });
 
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener('click', (event) => {
