@@ -48,7 +48,7 @@ class ProjectCard:
     description: str
     link: str
     tags: list[str]
-    project_type: str = "GitHub automatizado"
+    project_type: str = "Repositório complementar"
 
 
 class SafePortfolioUpdater:
@@ -139,7 +139,7 @@ class SafePortfolioUpdater:
             name = repo.get("name") or ""
             if not name or name in CURATED_REPOSITORIES:
                 continue
-            if repo.get("fork") or repo.get("archived") or repo.get("private"):
+            if repo.get("private"):
                 continue
 
             description = (repo.get("description") or "").strip()
@@ -155,7 +155,7 @@ class SafePortfolioUpdater:
                 )
             )
 
-            if len(cards) >= self.args.limit:
+            if self.args.limit and len(cards) >= self.args.limit:
                 break
 
         return cards
@@ -170,16 +170,19 @@ class SafePortfolioUpdater:
 
         html_blocks = []
         for card in cards:
+            tags = card.tags or ["GitHub"]
             tags_html = "".join(
-                f'<span class="linguagem-tag">{escape(tag)}</span>' for tag in card.tags
+                f'<span class="linguagem-tag">{escape(tag)}</span>' for tag in tags
             )
             html_blocks.append(
                 "\n".join(
                     [
-                        '<article class="projeto-card">',
-                        f'  <p class="projeto-tipo">{escape(card.project_type)}</p>',
-                        f"  <h3>{escape(card.name)}</h3>",
-                        f"  <p>{escape(card.description)}</p>",
+                        '<article class="projeto-card" data-auto-project-card>',
+                        '  <div class="projeto-card-header">',
+                        f'    <p class="projeto-tipo">{escape(card.project_type)}</p>',
+                        f"    <h3>{escape(card.name)}</h3>",
+                        "  </div>",
+                        f'  <p class="projeto-resumo">{escape(card.description)}</p>',
                         f'  <div class="projeto-linguagens">{tags_html}</div>',
                         '  <div class="projeto-acoes">',
                         (
@@ -322,19 +325,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--limit",
         type=int,
-        default=6,
-        help="Quantidade máxima de repositórios automáticos a renderizar.",
+        default=0,
+        help="Quantidade máxima de repositórios automáticos a renderizar. Use 0 para incluir todos os elegíveis.",
     )
     parser.add_argument(
         "--per-page",
         type=int,
-        default=30,
+        default=100,
         help="Quantidade de repositórios por página na GitHub API.",
     )
     parser.add_argument(
         "--max-pages",
         type=int,
-        default=2,
+        default=5,
         help="Quantidade máxima de páginas a consultar na GitHub API.",
     )
     parser.add_argument(

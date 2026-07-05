@@ -1,12 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const projectFilterButtons = document.querySelectorAll('.filtro button');
-  const projectCards = document.querySelectorAll('.projeto-card');
+  const projectCards = document.querySelectorAll('#lista-projetos .projeto-card');
   const certificationFilterButtons = document.querySelectorAll('.filtro-certificacoes button');
   const certificatesContainer = document.getElementById('certificados-lista');
   const backToTopButton = document.getElementById('back-to-top');
   const themeToggle = document.getElementById('theme-toggle');
   const currentYear = document.getElementById('current-year');
+  const autoProjectsList = document.getElementById('github-auto-projects-list');
+  const autoProjectsPanel = document.getElementById('github-auto-projects-panel');
+  const autoProjectsStatus = document.getElementById('github-auto-projects-status');
+  const autoProjectsTotal = document.getElementById('github-auto-projects-total');
+  const toggleAutoProjectsButton = document.getElementById('toggle-auto-projects');
+  const loadMoreAutoProjectsButton = document.getElementById('load-more-auto-projects');
+  const curatedProjectNames = new Set(
+    Array.from(projectCards)
+      .map((card) => card.querySelector('h3')?.textContent?.trim())
+      .filter(Boolean)
+  );
 
   if (currentYear) {
     currentYear.textContent = String(new Date().getFullYear());
@@ -65,6 +76,210 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const AUTO_PROJECTS_BATCH_SIZE = 12;
+  let autoProjectsVisibleCount = 0;
+  let autoProjectsLoaded = false;
+  let autoProjectsLoading = false;
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function getAutoProjectCards() {
+    return autoProjectsList
+      ? Array.from(autoProjectsList.querySelectorAll('[data-auto-project-card]'))
+      : [];
+  }
+
+  function inferAutoProjectTags(repo) {
+    const inferredTags = [];
+    const sourceText = `${repo.name || ''} ${repo.description || ''}`.toLowerCase();
+
+    if (repo.language) {
+      inferredTags.push(repo.language);
+    }
+    if (sourceText.includes('aws')) {
+      inferredTags.push('AWS');
+    }
+    if (sourceText.includes('kubernetes') || sourceText.includes('k8s')) {
+      inferredTags.push('Kubernetes');
+    }
+    if (sourceText.includes('github actions') || sourceText.includes('github-actions')) {
+      inferredTags.push('GitHub Actions');
+    }
+    if (sourceText.includes('docker')) {
+      inferredTags.push('Docker');
+    }
+
+    const deduplicatedTags = inferredTags.filter((tag, index) => inferredTags.indexOf(tag) === index);
+    return deduplicatedTags.length > 0 ? deduplicatedTags.slice(0, 5) : ['GitHub'];
+  }
+
+  function renderAutoProjectCards(repositories) {
+    if (!autoProjectsList) {
+      return;
+    }
+
+    if (repositories.length === 0) {
+      autoProjectsList.innerHTML = '<p class="github-auto-projects-placeholder">Nenhum repositório complementar elegível foi encontrado no momento.</p>';
+      return;
+    }
+
+    const cardsHtml = repositories.map((repo) => {
+      const description = repo.description?.trim()
+        || 'Repositório público complementar com estudos, automações e implementação prática.';
+      const tagsHtml = inferAutoProjectTags(repo)
+        .map((tag) => `<span class="linguagem-tag">${escapeHtml(tag)}</span>`)
+        .join('');
+
+      return `
+        <article class="projeto-card" data-auto-project-card>
+          <div class="projeto-card-header">
+            <p class="projeto-tipo">Repositório complementar</p>
+            <h3>${escapeHtml(repo.name)}</h3>
+          </div>
+          <p class="projeto-resumo">${escapeHtml(description)}</p>
+          <div class="projeto-linguagens">${tagsHtml}</div>
+          <div class="projeto-acoes">
+            <a href="${escapeHtml(repo.html_url || `https://github.com/brodyandre/${repo.name}`)}" class="projeto-link" target="_blank" rel="noopener noreferrer">Ver repositório</a>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    autoProjectsList.innerHTML = cardsHtml;
+  }
+
+  function updateAutoProjectsSummary() {
+    const totalCards = getAutoProjectCards().length;
+
+    if (autoProjectsTotal) {
+      autoProjectsTotal.textContent = totalCards > 0
+        ? `${totalCards} repositórios complementares`
+        : 'Lista complementar opcional';
+    }
+
+    if (toggleAutoProjectsButton) {
+      const isExpanded = toggleAutoProjectsButton.getAttribute('aria-expanded') === 'true';
+      toggleAutoProjectsButton.textContent = isExpanded
+        ? 'Recolher lista complementar'
+        : totalCards > 0
+          ? `Explorar mais ${totalCards} repositórios`
+          : 'Explorar demais repositórios';
+    }
+  }
+
+  function updateAutoProjectsVisibility() {
+    const autoProjectCards = getAutoProjectCards();
+    const totalCards = autoProjectCards.length;
+    const visibleCards = Math.min(autoProjectsVisibleCount, totalCards);
+
+    autoProjectCards.forEach((card, index) => {
+      card.hidden = index >= visibleCards;
+    });
+
+    if (autoProjectsStatus) {
+      if (totalCards === 0) {
+        autoProjectsStatus.textContent = 'Nenhum repositório complementar está disponível nesta lista no momento.';
+      } else if (visibleCards >= totalCards) {
+        autoProjectsStatus.textContent = `Mostrando todos os ${totalCards} repositórios complementares disponíveis.`;
+      } else {
+        autoProjectsStatus.textContent = `Mostrando ${visibleCards} de ${totalCards} repositórios complementares.`;
+      }
+    }
+
+    if (loadMoreAutoProjectsButton) {
+      const remainingCards = totalCards - visibleCards;
+      loadMoreAutoProjectsButton.hidden = remainingCards <= 0;
+      if (remainingCards > 0) {
+        const nextBatch = Math.min(AUTO_PROJECTS_BATCH_SIZE, remainingCards);
+        loadMoreAutoProjectsButton.textContent = `Mostrar mais ${nextBatch} repositórios`;
+      }
+    }
+
+    updateAutoProjectsSummary();
+  }
+
+  async function fetchComplementaryRepositories() {
+    const repositories = [];
+
+    for (let page = 1; page <= 5; page += 1) {
+      const response = await fetch(
+        `https://api.github.com/users/brodyandre/repos?per_page=100&page=${page}&sort=updated`,
+        {
+          headers: {
+            Accept: 'application/vnd.github+json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`GitHub API retornou status ${response.status}.`);
+      }
+
+      const pageRepositories = await response.json();
+      if (!Array.isArray(pageRepositories) || pageRepositories.length === 0) {
+        break;
+      }
+
+      repositories.push(...pageRepositories);
+
+      if (pageRepositories.length < 100) {
+        break;
+      }
+    }
+
+    return repositories.filter((repo) => repo?.name && !curatedProjectNames.has(repo.name) && !repo.private);
+  }
+
+  async function ensureAutoProjectsLoaded() {
+    if (autoProjectsLoading) {
+      return;
+    }
+
+    const existingCards = getAutoProjectCards();
+    if (existingCards.length > 0) {
+      autoProjectsLoaded = true;
+      if (autoProjectsVisibleCount === 0) {
+        autoProjectsVisibleCount = Math.min(AUTO_PROJECTS_BATCH_SIZE, existingCards.length);
+      }
+      updateAutoProjectsVisibility();
+      return;
+    }
+
+    if (autoProjectsLoaded || !autoProjectsList) {
+      return;
+    }
+
+    autoProjectsLoading = true;
+    if (autoProjectsStatus) {
+      autoProjectsStatus.textContent = 'Carregando repositórios complementares do GitHub...';
+    }
+
+    try {
+      const repositories = await fetchComplementaryRepositories();
+      renderAutoProjectCards(repositories);
+      autoProjectsLoaded = true;
+      autoProjectsVisibleCount = Math.min(AUTO_PROJECTS_BATCH_SIZE, repositories.length);
+      updateAutoProjectsVisibility();
+    } catch (error) {
+      if (autoProjectsStatus) {
+        autoProjectsStatus.textContent = 'Não foi possível carregar a lista complementar agora. Se preferir, use o link direto para ver todos os repositórios no GitHub.';
+      }
+      if (loadMoreAutoProjectsButton) {
+        loadMoreAutoProjectsButton.hidden = true;
+      }
+    } finally {
+      autoProjectsLoading = false;
+      updateAutoProjectsSummary();
+    }
+  }
+
   projectFilterButtons.forEach((button) => {
     button.addEventListener('click', () => {
       updateRadioGroupState(projectFilterButtons, button);
@@ -80,6 +295,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   filterProjects('all');
+
+  if (toggleAutoProjectsButton && autoProjectsPanel) {
+    updateAutoProjectsSummary();
+
+    toggleAutoProjectsButton.addEventListener('click', async () => {
+      const isExpanded = toggleAutoProjectsButton.getAttribute('aria-expanded') === 'true';
+
+      if (isExpanded) {
+        autoProjectsPanel.hidden = true;
+        toggleAutoProjectsButton.setAttribute('aria-expanded', 'false');
+        updateAutoProjectsSummary();
+        return;
+      }
+
+      autoProjectsPanel.hidden = false;
+      toggleAutoProjectsButton.setAttribute('aria-expanded', 'true');
+      updateAutoProjectsSummary();
+      await ensureAutoProjectsLoaded();
+    });
+  }
+
+  if (loadMoreAutoProjectsButton) {
+    loadMoreAutoProjectsButton.addEventListener('click', () => {
+      autoProjectsVisibleCount += AUTO_PROJECTS_BATCH_SIZE;
+      updateAutoProjectsVisibility();
+    });
+  }
 
   const allCertificates = certificatesContainer
     ? Array.from(certificatesContainer.children)
