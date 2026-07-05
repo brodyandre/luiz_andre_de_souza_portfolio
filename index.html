@@ -34,7 +34,7 @@
         var themeColorMeta = document.querySelector('meta[name="theme-color"]');
         var themeColors = {
           light: '#2c3e50',
-          neutral: '#3a3935',
+          neutral: '#744125',
           dark: '#121211'
         };
         var theme = storedTheme;
@@ -118,23 +118,23 @@
   <a href="#main-content" class="skip-link">Pular para conteúdo principal</a>
   <nav aria-label="Menu Principal">
     <div class="logo">Luiz André de Souza</div>
-    <ul>
-      <li><a href="#sobre" class="active">Sobre</a></li>
-      <li><a href="#projetos">Projetos</a></li>
-      <li><a href="#skills">Skills</a></li>
-      <li><a href="#certificacoes">Certificações</a></li>
-      <li><a href="#contato">Contato</a></li>
-      <li class="theme-picker-item">
-        <div class="theme-picker" role="group" aria-label="Preferência de tema">
-          <span class="theme-picker-label">Tema</span>
-          <div class="theme-picker-options" role="radiogroup" aria-label="Escolher tema do portfólio">
-            <button type="button" class="theme-option" data-theme-value="light" role="radio" aria-checked="false">Claro</button>
-            <button type="button" class="theme-option" data-theme-value="neutral" role="radio" aria-checked="false">Neutro</button>
-            <button type="button" class="theme-option" data-theme-value="dark" role="radio" aria-checked="false">Escuro</button>
-          </div>
+    <div class="nav-actions">
+      <ul>
+        <li><a href="#sobre" class="active">Sobre</a></li>
+        <li><a href="#projetos">Projetos</a></li>
+        <li><a href="#skills">Skills</a></li>
+        <li><a href="#certificacoes">Certificações</a></li>
+        <li><a href="#contato">Contato</a></li>
+      </ul>
+      <div class="theme-picker" role="group" aria-label="Preferência de tema">
+        <span class="theme-picker-label">Tema</span>
+        <div class="theme-picker-options" role="radiogroup" aria-label="Escolher tema do portfólio">
+          <button type="button" class="theme-option" data-theme-value="light" role="radio" aria-checked="false">Claro</button>
+          <button type="button" class="theme-option" data-theme-value="neutral" role="radio" aria-checked="false">Neutro</button>
+          <button type="button" class="theme-option" data-theme-value="dark" role="radio" aria-checked="false">Escuro</button>
         </div>
-      </li>
-    </ul>
+      </div>
+    </div>
   </nav>
 </header>
 

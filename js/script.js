@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const AVAILABLE_THEMES = ['light', 'neutral', 'dark'];
   const THEME_COLORS = {
     light: '#2c3e50',
-    neutral: '#3a3935',
+    neutral: '#744125',
     dark: '#121211'
   };
 
