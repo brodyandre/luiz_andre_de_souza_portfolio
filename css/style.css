@@ -725,6 +725,108 @@ h1, h2, h3 {
   color: var(--muted-text-color);
 }
 
+.opportunities-section {
+  padding: 1.75rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--accent-gradient-start), var(--accent-gradient-end));
+  border: 1px solid var(--accent-border-soft);
+}
+
+.opportunities-header {
+  margin-bottom: 1.5rem;
+}
+
+.opportunities-header .section-intro {
+  margin-bottom: 0;
+}
+
+.opportunities-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.opportunities-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: var(--card-bg);
+  border-radius: 14px;
+  border: 1px solid var(--accent-border-soft);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+}
+
+.opportunities-kicker {
+  margin: 0;
+  color: var(--secondary-color);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.opportunities-list {
+  display: grid;
+  gap: 0.85rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.opportunities-list li {
+  margin: 0;
+  padding-left: 1rem;
+  position: relative;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.opportunities-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background-color: var(--secondary-color);
+  transform: translateY(-50%);
+}
+
+.opportunities-model,
+.opportunities-support {
+  margin: 0;
+  color: var(--muted-text-color);
+}
+
+.opportunities-model {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.opportunities-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.opportunities-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.1rem;
+  align-items: center;
+}
+
+.opportunities-links a {
+  color: var(--secondary-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.opportunities-links a:hover {
+  text-decoration: underline;
+}
+
 /* Seção Certificações */
 .certificados-container {
   display: grid;
@@ -1040,6 +1142,14 @@ footer {
     padding: 1.4rem;
   }
 
+  .opportunities-section {
+    padding: 1.4rem;
+  }
+
+  .opportunities-layout {
+    grid-template-columns: 1fr;
+  }
+
   .experiencia-destaque p {
     padding-left: 0;
     border-left: 0;
@@ -1114,6 +1224,11 @@ footer {
   .github-auto-projects-button,
   .github-auto-projects-direct-link {
     width: 100%;
+  }
+
+  .opportunities-actions .btn-rede {
+    width: 100%;
+    justify-content: center;
   }
 
   #lista-projetos {
