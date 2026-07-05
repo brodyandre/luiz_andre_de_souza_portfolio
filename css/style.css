@@ -33,6 +33,10 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .skip-link {
   position: absolute;
   top: -40px;
