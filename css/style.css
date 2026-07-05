@@ -110,6 +110,18 @@ body {
   top: 0;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 header {
   background-color: var(--primary-color);
   color: var(--contrast-text-color);
@@ -1019,6 +1031,10 @@ h1, h2, h3 {
   overflow: auto;
 }
 
+.modal.is-open {
+  display: block;
+}
+
 .modal-conteudo {
   display: block;
   margin: 5% auto;
@@ -1174,7 +1190,6 @@ footer {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   transition: background-color 0.3s;
-  display: none;
   position: fixed;
   bottom: 20px;
   right: 20px;

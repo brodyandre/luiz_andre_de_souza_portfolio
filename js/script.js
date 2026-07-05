@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const projectFilterButtons = document.querySelectorAll('.filtro button');
+  const mainContent = document.getElementById('main-content');
+  const projectFilterButtons = Array.from(document.querySelectorAll('.filtro button'));
   const projectCards = document.querySelectorAll('#lista-projetos .projeto-card');
-  const certificationFilterButtons = document.querySelectorAll('.filtro-certificacoes button');
+  const certificationFilterButtons = Array.from(document.querySelectorAll('.filtro-certificacoes button'));
   const certificatesContainer = document.getElementById('certificados-lista');
   const backToTopButton = document.getElementById('back-to-top');
   const themeOptionButtons = Array.from(document.querySelectorAll('[data-theme-value]'));
@@ -14,11 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoProjectsTotal = document.getElementById('github-auto-projects-total');
   const toggleAutoProjectsButton = document.getElementById('toggle-auto-projects');
   const loadMoreAutoProjectsButton = document.getElementById('load-more-auto-projects');
+  const certificateButtons = Array.from(document.querySelectorAll('.ver-credencial'));
+  const modalOpeners = new WeakMap();
   const curatedProjectNames = new Set(
     Array.from(projectCards)
       .map((card) => card.querySelector('h3')?.textContent?.trim())
       .filter(Boolean)
   );
+  let activeModal = null;
 
   if (currentYear) {
     currentYear.textContent = String(new Date().getFullYear());
@@ -46,7 +50,73 @@ document.addEventListener('DOMContentLoaded', () => {
       const isActive = button === activeButton;
       button.classList.toggle('active', isActive);
       button.setAttribute('aria-checked', String(isActive));
+      button.setAttribute('tabindex', isActive ? '0' : '-1');
     });
+  }
+
+  function setupRadioGroup(buttons, options) {
+    const { getValue, onChange, controlsId } = options;
+
+    if (buttons.length === 0) {
+      return;
+    }
+
+    if (controlsId) {
+      buttons.forEach((button) => {
+        button.setAttribute('aria-controls', controlsId);
+      });
+    }
+
+    const activateButton = (button, { moveFocus = false } = {}) => {
+      updateRadioGroupState(buttons, button);
+      if (moveFocus) {
+        button.focus();
+      }
+      onChange(getValue(button));
+    };
+
+    const initialButton = buttons.find((button) => (
+      button.classList.contains('active') || button.getAttribute('aria-checked') === 'true'
+    )) || buttons[0];
+
+    updateRadioGroupState(buttons, initialButton);
+
+    buttons.forEach((button, index) => {
+      button.addEventListener('click', () => {
+        activateButton(button);
+      });
+
+      button.addEventListener('keydown', (event) => {
+        const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+
+        if (event.key === ' ' || event.key === 'Enter') {
+          event.preventDefault();
+          activateButton(button, { moveFocus: true });
+          return;
+        }
+
+        if (!navigationKeys.includes(event.key)) {
+          return;
+        }
+
+        event.preventDefault();
+
+        let nextIndex = index;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          nextIndex = (index + 1) % buttons.length;
+        } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+          nextIndex = (index - 1 + buttons.length) % buttons.length;
+        } else if (event.key === 'Home') {
+          nextIndex = 0;
+        } else if (event.key === 'End') {
+          nextIndex = buttons.length - 1;
+        }
+
+        activateButton(buttons[nextIndex], { moveFocus: true });
+      });
+    });
+
+    onChange(getValue(initialButton));
   }
 
   function filterProjects(filter) {
@@ -206,9 +276,17 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/\bvc\b/gi, 'você')
       .replace(/\bdesfio\b/gi, 'desafio')
       .replace(/\bdatascience\b/gi, 'Data Science')
+      .replace(/\bdata lake\b/gi, 'Data Lake')
+      .replace(/\bmachine learning\b/gi, 'Machine Learning')
       .replace(/\bjava script\b/gi, 'JavaScript')
+      .replace(/\bci\s+cd\b/gi, 'CI/CD')
+      .replace(/\bdockerhub\b/gi, 'Docker Hub')
+      .replace(/\bgit hub\b/gi, 'GitHub')
+      .replace(/\blinkedin\b/gi, 'LinkedIn')
       .replace(/\bapp\b/gi, 'aplicação')
+      .replace(/\bpyhton\b/gi, 'Python')
       .replace(/\bpython\b/gi, 'Python')
+      .replace(/\bmercedes bens\b/gi, 'Mercedes-Benz')
       .replace(/\bseguimento\b/gi, 'segmento')
       .replace(/^aqui você encontrará um projeto completo para\b/i, 'Projeto com')
       .replace(/^esse aplicativo\b/i, 'Este aplicativo')
@@ -382,21 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAutoProjectsVisibility();
   }
 
-  projectFilterButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      updateRadioGroupState(projectFilterButtons, button);
-      filterProjects(button.dataset.language || 'all');
-    });
-
-    button.addEventListener('keydown', (event) => {
-      if (event.key === ' ' || event.key === 'Enter') {
-        event.preventDefault();
-        button.click();
-      }
-    });
+  setupRadioGroup(projectFilterButtons, {
+    getValue: (button) => button.dataset.language || 'all',
+    onChange: filterProjects,
+    controlsId: 'lista-projetos'
   });
-
-  filterProjects('all');
 
   if (toggleAutoProjectsButton && autoProjectsPanel) {
     updateAutoProjectsSummary();
@@ -440,66 +508,163 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  certificationFilterButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      updateRadioGroupState(certificationFilterButtons, button);
-      filterCertifications(button.dataset.year || 'all');
-    });
-
-    button.addEventListener('keydown', (event) => {
-      if (event.key === ' ' || event.key === 'Enter') {
-        event.preventDefault();
-        button.click();
-      }
-    });
+  setupRadioGroup(certificationFilterButtons, {
+    getValue: (button) => button.dataset.year || 'all',
+    onChange: filterCertifications,
+    controlsId: 'certificados-lista'
   });
 
-  filterCertifications('all');
-
-  function openModal(modal, onOpen) {
-    if (!modal) {
-      return;
-    }
-
-    modal.style.display = 'block';
-    onOpen?.();
-    modal.focus();
+  function setModalVisibility(modal, isOpen) {
+    modal.hidden = !isOpen;
+    modal.classList.toggle('is-open', isOpen);
+    modal.setAttribute('aria-hidden', String(!isOpen));
   }
 
-  function closeModal(modal, onClose) {
-    if (!modal) {
+  function getFocusableElements(container) {
+    return Array.from(container.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])'
+    )).filter((element) => {
+      if (!(element instanceof HTMLElement)) {
+        return false;
+      }
+
+      return !element.hidden && element.getAttribute('aria-hidden') !== 'true';
+    });
+  }
+
+  function trapFocusInModal(event, modal) {
+    const focusableElements = getFocusableElements(modal);
+
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      modal.focus();
       return;
     }
 
-    modal.style.display = 'none';
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement = document.activeElement;
+
+    if (!modal.contains(activeElement)) {
+      event.preventDefault();
+      firstElement.focus();
+      return;
+    }
+
+    if (event.shiftKey && activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  }
+
+  function closeModal(modal, options = {}) {
+    const { onClose, restoreFocus = true } = options;
+
+    if (!(modal instanceof HTMLElement)) {
+      return;
+    }
+
+    setModalVisibility(modal, false);
     onClose?.();
+
+    if (activeModal === modal) {
+      activeModal = null;
+      document.body.style.overflow = '';
+    }
+
+    if (!restoreFocus) {
+      return;
+    }
+
+    const opener = modalOpeners.get(modal);
+    if (opener instanceof HTMLElement && document.contains(opener)) {
+      opener.focus();
+    }
+  }
+
+  function closeModalWithCleanup(modal, options = {}) {
+    closeModal(modal, {
+      ...options,
+      onClose: () => {
+        const iframe = modal?.querySelector('iframe');
+        if (iframe) {
+          iframe.src = '';
+        }
+        options.onClose?.();
+      }
+    });
+  }
+
+  function openModal(modal, opener, onOpen) {
+    if (!(modal instanceof HTMLElement)) {
+      return;
+    }
+
+    if (activeModal && activeModal !== modal) {
+      closeModalWithCleanup(activeModal, { restoreFocus: false });
+    }
+
+    const openerElement = opener instanceof HTMLElement
+      ? opener
+      : document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    if (openerElement) {
+      modalOpeners.set(modal, openerElement);
+    }
+
+    setModalVisibility(modal, true);
+    activeModal = modal;
+    document.body.style.overflow = 'hidden';
+    onOpen?.();
+
+    const closeButton = modal.querySelector('.fechar-modal');
+    const initialFocusTarget = closeButton instanceof HTMLElement ? closeButton : modal;
+    window.requestAnimationFrame(() => {
+      initialFocusTarget.focus();
+    });
   }
 
   document.querySelectorAll('.fechar-modal').forEach((button) => {
     button.addEventListener('click', () => {
       const modal = button.closest('.modal');
-      const iframe = modal?.querySelector('iframe');
-
-      closeModal(modal, () => {
-        if (iframe) {
-          iframe.src = '';
-        }
-      });
+      closeModalWithCleanup(modal);
     });
   });
 
   const certificateModal = document.getElementById('certificado-modal');
   const certificateImage = document.getElementById('imagem-certificado');
 
-  document.querySelectorAll('.ver-credencial').forEach((button) => {
+  function getCertificateImageAlt(button) {
+    const ariaLabel = button.getAttribute('aria-label') || '';
+    const normalizedLabel = ariaLabel
+      .replace(/^Ver credencial do certificado\s+/i, 'Certificado ')
+      .replace(/^Ver credencial\s+/i, 'Certificado ')
+      .trim();
+
+    return normalizedLabel || 'Certificado';
+  }
+
+  certificateButtons.forEach((button) => {
+    button.setAttribute('type', 'button');
+    button.setAttribute('aria-haspopup', 'dialog');
+    button.setAttribute('aria-controls', 'certificado-modal');
+
     button.addEventListener('click', () => {
       if (!certificateImage) {
         return;
       }
 
       certificateImage.src = button.dataset.imagem || '';
-      certificateImage.alt = button.getAttribute('aria-label') || 'Certificado';
-      openModal(certificateModal);
+      certificateImage.alt = getCertificateImageAlt(button);
+      openModal(certificateModal, button);
     });
   });
 
@@ -509,7 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (openMapButton && mapIframe) {
     openMapButton.addEventListener('click', () => {
-      openModal(mapModal, () => {
+      openModal(mapModal, openMapButton, () => {
         mapIframe.src = 'https://maps.google.com/maps?width=600&height=450&hl=pt-BR&q=Zona%20Leste%20S%C3%A3o%20Paulo%20SP&ie=UTF8&t=&z=11&iwloc=B&output=embed';
       });
     });
@@ -519,43 +684,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const openResumeButton = document.getElementById('ver-curriculo');
 
   if (openResumeButton) {
-    openResumeButton.addEventListener('click', () => openModal(resumeModal));
+    openResumeButton.setAttribute('aria-haspopup', 'dialog');
+    openResumeButton.setAttribute('aria-controls', 'curriculo-modal');
+    openResumeButton.addEventListener('click', () => openModal(resumeModal, openResumeButton));
   }
 
-  window.addEventListener('click', (event) => {
-    if (event.target instanceof HTMLElement && event.target.classList.contains('modal')) {
-      const iframe = event.target.querySelector('iframe');
-
-      closeModal(event.target, () => {
-        if (iframe) {
-          iframe.src = '';
-        }
-      });
-    }
-  });
-
-  window.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') {
-      return;
-    }
-
-    document.querySelectorAll('.modal').forEach((modal) => {
-      if (!(modal instanceof HTMLElement) || modal.style.display !== 'block') {
-        return;
+  document.querySelectorAll('.modal').forEach((modal) => {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeModalWithCleanup(modal);
       }
-
-      const iframe = modal.querySelector('iframe');
-      closeModal(modal, () => {
-        if (iframe) {
-          iframe.src = '';
-        }
-      });
     });
   });
 
+  window.addEventListener('keydown', (event) => {
+    if (!(activeModal instanceof HTMLElement) || activeModal.hidden) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeModalWithCleanup(activeModal);
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      trapFocusInModal(event, activeModal);
+    }
+  });
+
   if (backToTopButton) {
+    const updateBackToTopVisibility = () => {
+      const shouldShow = window.pageYOffset > 300;
+      backToTopButton.hidden = !shouldShow;
+      backToTopButton.setAttribute('aria-hidden', String(!shouldShow));
+    };
+
+    updateBackToTopVisibility();
+
     window.addEventListener('scroll', () => {
-      backToTopButton.style.display = window.pageYOffset > 300 ? 'block' : 'none';
+      updateBackToTopVisibility();
     });
 
     backToTopButton.addEventListener('click', () => {
@@ -563,6 +731,10 @@ document.addEventListener('DOMContentLoaded', () => {
         top: 0,
         behavior: prefersReducedMotion ? 'auto' : 'smooth'
       });
+
+      window.setTimeout(() => {
+        mainContent?.focus({ preventScroll: true });
+      }, prefersReducedMotion ? 0 : 400);
     });
   }
 
